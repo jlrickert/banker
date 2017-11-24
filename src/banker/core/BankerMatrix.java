@@ -1,4 +1,4 @@
-package banker;
+package banker.core;
 
 public class BankerMatrix {
     // private int[] available;
