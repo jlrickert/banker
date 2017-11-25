@@ -48,8 +48,9 @@ class Program {
 
         {   // load requests
             for (int i = 0; i < this.customerCount; i += 1) {
-                int count = 0;
-                int num = 50;
+                int count = 0; // count of requests added
+                int num = 50;  // percent chance to get included after 3
+                               // requests
                 while (true) {
                     int n = Util.randomIntRange(1, 100);
                     if (count <= 3 || n < num) {
