@@ -15,7 +15,11 @@ class Program {
         try {
             Program prog = new Program(args);
             prog.start();
-        } catch (ParseErr | MissingArgErr e) {
+        } catch (MissingArgErr e) {
+            System.out.println("Error " + e.getMessage());
+            Program.printHelp();
+            System.exit(0);
+        } catch (ParseErr e) {
             System.out.println("Error " + e.getMessage());
             Program.printHelp();
             System.exit(0);
@@ -49,7 +53,7 @@ class Program {
                 while (true) {
                     int n = Util.randomIntRange(1, 100);
                     if (count <= 3 || n < num) {
-                        this.customers[i].randomRequest();
+                        this.customers[i].newRandomRequest();
                         num >>= 2;
                     } else {
                         break;
@@ -75,7 +79,7 @@ class Program {
     }
 
     // maybe throw error on problem
-    private void parseArguments(String args[]) {
+    private void parseArguments(String args[]) throws ParseErr, MissingArgErr {
         this.resourceCount = 3;
         this.customerCount = 4;
     }

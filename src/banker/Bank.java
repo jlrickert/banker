@@ -15,7 +15,7 @@ public class Bank {
     public static final int MIN_RESOURCE = 1;
     public final int resourceCount;
     public final int customerCount;
-    private final Semaphore[] resources;
+    private final Semaphore[] resources; // may not need to be a semaphore
     private final int[][] maximum;
     private int[][] allocation;
 
@@ -39,6 +39,19 @@ public class Bank {
     public void printInital() {
         this.printInitalResources();
         this.printMaximum();
+    }
+
+    public synchronized void transact(Customer customer, int[] request) {
+        if (this.isSafe(request)) {
+
+        } else {
+            // throw some unspecified error
+            // throw new NotSafeError();
+        }
+    }
+
+    public boolean isSafe(int[] request) {
+        return true;
     }
 
     private Semaphore[] initResources() {

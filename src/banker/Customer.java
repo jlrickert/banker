@@ -5,35 +5,41 @@ import banker.errors.*;
 import java.util.*;
 
 public class Customer implements Runnable {
-    public final int id;
+    enum RequestStatus {
+        WAITING,  // In the queue to be wanting to allocate resource
+        PENDING,  // has resources allocated
+        FINISHED, // Has return resources
+    }
 
+    public final int id;
     private int[] resources;
     private int[] maxRequests;
     private Bank bank;
     private List<int[]> requests;
-    private List<Boolean> requestComplete;
-    private boolean finished;
+    private List<RequestStatus> status;
+    private boolean finished;  // let the thread know that no more requests will
+                               // be incoming
 
     public Customer(int id, Bank bank) {
         this.id = id;
         this.bank = bank;
         this.requests = new LinkedList<int[]>();
-        this.requestComplete = new LinkedList<Boolean>();
+        this.status = new LinkedList<RequestStatus>();
         this.maxRequests = bank.getMaximum(this.id);
     }
 
-    public synchronized void request(int[] requests) {
+    public synchronized void newRequest(int[] requests) {
         // this.bank.request(request);
         this.requests.add(requests);
-        this.requestComplete.add(false);
+        this.status.add(RequestStatus.WAITING);
     }
 
-    public void randomRequest() {
+    public void newRandomRequest() {
         int[] request = new int[this.bank.resourceCount];
         for (int i = 0; i < this.bank.resourceCount; i += 1) {
             request[i] = Util.randomIntRange(1, this.maxRequests[i]);
         }
-        this.request(request);
+        this.newRequest(request);
     }
 
     public void finished() {
@@ -44,13 +50,14 @@ public class Customer implements Runnable {
         return this.finished;
     }
 
-    public boolean hasPendingRequest() {
-        return this.requestComplete.contains(true);
+    public boolean hasUnfinishedRequest() {
+        return this.status.contains(RequestStatus.WAITING) ||
+            this.status.contains(RequestStatus.PENDING);
     }
 
     public void run() {
-        while (!this.finished || this.hasPendingRequest()) {
-            if (!this.hasPendingRequest() && this.isFinished()) {
+        while (!this.finished || this.hasUnfinishedRequest()) {
+            if (!this.hasUnfinishedRequest() && this.isFinished()) {
                 Thread.yield();
             } else {
                 try {
