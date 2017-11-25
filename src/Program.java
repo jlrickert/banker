@@ -81,8 +81,8 @@ class Program {
 
     // maybe throw error on problem
     private void parseArguments(String args[]) throws ParseErr, MissingArgErr {
-        this.resourceCount = 3;
-        this.customerCount = 4;
+        this.resourceCount = 7;
+        this.customerCount = 8;
     }
 
     private void initBank() {
