@@ -18,7 +18,7 @@ doc:
 
 run: build
 	@cd target
-	@$(JAVA) -cp $(BUILDDIR) banker.Program $(filter-out $@, $(MAKECMDGOALS))
+	@$(JAVA) -cp $(BUILDDIR) Program $(filter-out $@, $(MAKECMDGOALS))
 
 build: _target $(CLASSES)
 
