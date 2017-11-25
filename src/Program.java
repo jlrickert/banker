@@ -36,11 +36,32 @@ class Program {
     public void start() {
         Thread[] pids = new Thread[this.customerCount];
 
+        // spin up all customer threads
         for (int i = 0; i < this.customerCount; i += 1) {
             pids[i] = new Thread(this.customers[i]);
             pids[i].start();
         }
 
+        {   // load requests
+            for (int i = 0; i < this.customerCount; i += 1) {
+                int count = 0;
+                int num = 50;
+                while (true) {
+                    int n = Util.randomIntRange(1, 100);
+                    if (count <= 3 || n < num) {
+                        this.customers[i].randomRequest();
+                        num >>= 2;
+                    } else {
+                        break;
+                    }
+                }
+
+                // tell the customer thread there is no more incoming requests
+                this.customers[i].finished();
+            }
+        }
+
+        // Wait for all customer threads to be done
         boolean flag = true;
         while (flag) {
             flag = false;

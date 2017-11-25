@@ -11,20 +11,20 @@ public class Bank {
         public Handler() {
         }
     }
-    public static final int MAX_RESOUCE = 10;
+    public static final int MAX_RESOURCE = 10;
     public static final int MIN_RESOURCE = 1;
     public final int resourceCount;
     public final int customerCount;
-    private Semaphore[] resources;
-    private int[][] maximum;
+    private final Semaphore[] resources;
+    private final int[][] maximum;
     private int[][] allocation;
 
     public Bank(int resourceCount, int customerCount) {
         this.resourceCount = resourceCount;
         this.customerCount = customerCount;
-        this.initResources();
-        this.initMaximum();
-        this.initAllocation();
+        this.resources = this.initResources();
+        this.maximum = this.initMaximum();
+        this.allocation = this.initAllocation();
         this.printInital();
     }
 
@@ -41,26 +41,34 @@ public class Bank {
         this.printMaximum();
     }
 
-
-    private void initResources() {
-        this.resources = new Semaphore[resourceCount];
+    private Semaphore[] initResources() {
+        Semaphore[] resources = new Semaphore[resourceCount];
         for (int i = 0; i < this.resourceCount; i += 1) {
-            this.resources[i] = new Semaphore(5);
+            int n = Util.randomIntRange(this.MIN_RESOURCE, this.MAX_RESOURCE);
+            resources[i] = new Semaphore(n);
         }
+        return resources;
     }
 
-    private void initMaximum() {
-        this.maximum = new int[this.customerCount][this.resourceCount];
-        for (int i = 0; i < this.customerCount; i += 1) {
-            this.maximum[i] = new int[this.resourceCount];
+    private int[][] initMaximum() {
+        int[][] maximum = new int[this.customerCount][this.resourceCount];
+        for (int row = 0; row < this.customerCount; row += 1) {
+            maximum[row] = new int[this.resourceCount];
+            for (int col = 0; col < this.resourceCount; col += 1) {
+                int resourceCount = this.resources[col].availablePermits();
+                int n = Util.randomIntRange(this.MIN_RESOURCE, resourceCount);
+                maximum[row][col] = n;
+            }
         }
+        return maximum;
     }
 
-    private void initAllocation() {
-        this.allocation = new int[this.customerCount][this.resourceCount];
+    private int[][] initAllocation() {
+        int[][] allocation = new int[this.customerCount][this.resourceCount];
         for (int i = 0; i < this.customerCount; i += 1) {
-            this.allocation[i] = new int[this.resourceCount];
+            allocation[i] = new int[this.resourceCount];
         }
+        return allocation;
     }
 
     public void printInitalResources() {
@@ -94,5 +102,17 @@ public class Bank {
     }
 
     public void printAllocated() {
+        System.out.println("Bank - Allocation");
+        for (int row = 0; row < this.customerCount; row += 1) {
+            String str = "\t[";
+            for (int col = 0; col < this.resourceCount; col += 1) {
+                str += this.allocation[row][col];
+                if (col < this.resourceCount - 1) {
+                    str += ", ";
+                }
+            }
+            str += "]";
+            System.out.println(str);
+        }
     }
 }
