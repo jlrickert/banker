@@ -10,8 +10,8 @@ public class Bank {
         public Handler() {
         }
     }
-    public static final int MAX_RESOURCE = 10;
-    public static final int MIN_RESOURCE = 1;
+    public static final int MAX_RESOURCE = 100;
+    public static final int MIN_RESOURCE = 10;
     public final int resourceCount;
     public final int customerCount;
     private final int[] resources;
@@ -40,7 +40,8 @@ public class Bank {
         this.printMaximum();
     }
 
-    public synchronized void request(Customer customer, int[] request) {
+    public synchronized boolean request(Customer customer, int[] request) {
+        System.out.println("requesting");
         // String id = String.
         // System.out.println(Customer.id)
         // if (this.isSafe(request)) {
@@ -48,11 +49,13 @@ public class Bank {
         //     // throw some unspecified error
         //     // throw new NotSafeError();
         // }
+        return true;
     }
 
     public synchronized void release(Customer customer, int[] request) {
+        System.out.println("releasing");
         int id = customer.id;
-        for (int col = 0; col < this.allocation[col].length; col += 1) {
+        for (int col = 0; col < this.resourceCount; col += 1) {
             this.allocation[id][col] -= request[col];
         }
     }

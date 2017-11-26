@@ -55,14 +55,13 @@ class Program {
                     int n = Util.randomIntRange(1, 100);
                     if (count <= Customer.MIN_REQUESTS || n < num) {
                         this.customers[i].newRandomRequest();
+                        count += 1;
                         num >>= 2;
                     } else {
                         break;
                     }
                 }
-
-                // tell the customer thread there is no more incoming requests
-                this.customers[i].finished();
+                this.customers[i].close();
             }
         }
 
@@ -82,7 +81,7 @@ class Program {
     // maybe throw error on problem
     private void parseArguments(String args[]) throws ParseErr, MissingArgErr {
         this.resourceCount = 7;
-        this.customerCount = 8;
+        this.customerCount = 4;
     }
 
     private void initBank() {
