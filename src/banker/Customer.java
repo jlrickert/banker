@@ -107,24 +107,32 @@ public class Customer implements Runnable {
         RequestStatus status = this.status.get(index);
         int[] request = this.requests.get(index);
         if (status == RequestStatus.WAITING) {
-            this.printRequest(index, index, request);
-            if (this.bank.request(this, request)) {
-                this.status.set(index, RequestStatus.PENDING);
-            }
+            this.printRequest(this.id, index, request);
+            this.handleRequest(index, request);
         } else if (status == RequestStatus.PENDING){
-            this.printRelease(index, index, request);
-            this.bank.release(this, request);
-            this.status.set(index, RequestStatus.FINISHED);
-            this.finished += 1;
+            this.printRelease(this.id, index, request);
+            this.handleRelease(index, request);
         } else {
             System.out.println("This shouldn't happen");
         }
     }
 
+    private void handleRequest(int index, int[] request) {
+        if (this.bank.request(this, request)) {
+            this.status.set(index, RequestStatus.PENDING);
+        }
+    }
+
+    private void handleRelease(int index, int[] request) {
+        this.bank.release(this, request);
+        this.status.set(index, RequestStatus.FINISHED);
+        this.finished += 1;
+    }
+
     private void printRequest(int id, int index, int[] request) {
         String str = "Customer ";
         str += String.valueOf(this.id);
-        str += " requesting TX ";
+        str += " requesting ";
         str += String.valueOf(index);
         str += " ";
         str += Util.stringify(request);
@@ -134,9 +142,9 @@ public class Customer implements Runnable {
     private void printRelease(int id, int index, int[] request) {
         String str = "Customer ";
         str += String.valueOf(this.id);
-        str += " releasing TX ";
+        str += " releasing ";
         str += String.valueOf(index);
-        str += " ";
+        str += ": ";
         str += Util.stringify(request);
         System.out.println(str);
     }

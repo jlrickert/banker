@@ -1,20 +1,16 @@
 package banker;
 
 import java.util.*;
-
+import java.util.concurrent.*;
 import banker.errors.*;
 
 
 public class Bank {
-    private class Handler {
-        public Handler() {
-        }
-    }
-    public static final int MAX_RESOURCE = 100;
-    public static final int MIN_RESOURCE = 10;
+    public static final int MAX_RESOURCE = 10;
+    public static final int MIN_RESOURCE = 1;
     public final int resourceCount;
     public final int customerCount;
-    private final int[] resources;
+    private final Semaphore[] resources;
     private final int[][] maximum;
     private int[][] allocation;
 
@@ -36,39 +32,65 @@ public class Bank {
     }
 
     public void printInital() {
-        this.printInitalResources();
+        System.out.println("Bank - Initial Resources Available:");
+        this.printResources();
         this.printMaximum();
+        System.out.println();
     }
 
-    public synchronized boolean request(Customer customer, int[] request) {
-        System.out.println("requesting");
-        // String id = String.
-        // System.out.println(Customer.id)
-        // if (this.isSafe(request)) {
-        // } else {
-        //     // throw some unspecified error
-        //     // throw new NotSafeError();
-        // }
+    public boolean request(Customer customer, int[] request) {
+        if (this.isSafe(customer, request)) {
+            this.addToAllocation(customer.id, request);
+            for (int i = 0; i < this.resources.length; i += 1) {
+                try {
+                    this.resources[i].acquire(request[i]);
+                } catch (InterruptedException e) {
+                    System.out.println("Error " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            this.printResources();
+            this.printAllocated();
+            System.out.println();
+        } else {
+            return false;
+        }
         return true;
     }
 
-    public synchronized void release(Customer customer, int[] request) {
-        System.out.println("releasing");
-        int id = customer.id;
-        for (int col = 0; col < this.resourceCount; col += 1) {
-            this.allocation[id][col] -= request[col];
+    public void release(Customer customer, int[] request) {
+        this.removeFromAllocation(customer.id, request);
+        for (int i = 0; i < this.resources.length; i += 1) {
+            this.resources[i].release(request[i]);
+        }
+        this.printAllocated();
+    }
+
+    public synchronized boolean isSafe(Customer customer, int[] request) {
+        if (true) {
+            return true;
+        }
+        System.out.println("Bank");
+        return false;
+    }
+
+    private synchronized void addToAllocation(int row, int[] values) {
+        for (int i = 0; i < this.resourceCount; i += 1) {
+            this.allocation[row][i] += values[i];
         }
     }
 
-    public boolean isSafe(int[] request) {
-        return true;
+    private synchronized void removeFromAllocation(int row, int[] values) {
+        for (int i = 0; i < this.resourceCount; i += 1) {
+            this.allocation[row][i] -= values[i];
+        }
     }
 
-    private int[] initResources() {
-        int[] resources = new int[resourceCount];
+    private Semaphore[] initResources() {
+        Semaphore[] resources = new Semaphore[resourceCount];
         for (int i = 0; i < this.resourceCount; i += 1) {
             int n = Util.randomIntRange(this.MIN_RESOURCE, this.MAX_RESOURCE);
-            resources[i] = n;
+            resources[i] = new Semaphore(n);
         }
         return resources;
     }
@@ -77,7 +99,7 @@ public class Bank {
         int[][] maximum = new int[this.customerCount][this.resourceCount];
         for (int row = 0; row < this.customerCount; row += 1) {
             for (int col = 0; col < this.resourceCount; col += 1) {
-                int resourceCount = this.resources[col];
+                int resourceCount = this.resources[col].availablePermits();
                 int n = Util.randomIntRange(this.MIN_RESOURCE, resourceCount);
                 maximum[row][col] = n;
             }
@@ -93,22 +115,13 @@ public class Bank {
         return allocation;
     }
 
-    public void printInitalResources() {
-        System.out.println("Bank - Initial Resources Available:");
-
-        String str = "\t[";
-        for (int i = 0; i < this.resourceCount; i += 1) {
-            int count = this.resources[i];
-            str += String.valueOf(count);
-            if (i < this.resources.length - 1) {
-                str += ", ";
-            }
-        }
-        str += "]";
+    public synchronized void printResources() {
+        String str = "Available Resources: ";
+        str += this.stringifiedResources();
         System.out.println(str);
     }
 
-    private void printMaximum() {
+    public synchronized void printMaximum() {
         System.out.println("Bank - Max");
         for (int row = 0; row < this.customerCount; row += 1) {
             String str = "\t";
@@ -117,12 +130,27 @@ public class Bank {
         }
     }
 
-    public void printAllocated() {
-        System.out.println("Bank - Allocation");
+    public synchronized void printAllocated() {
+        System.out.println("Bank - Allocation: ");
         for (int row = 0; row < this.customerCount; row += 1) {
             String str = "\t";
-            str = Util.stringify(this.allocation[row]);
+            str += Util.stringify(this.allocation[row]);
             System.out.println(str);
         }
+        System.out.println();
     }
+
+    private String stringifiedResources() {
+        String str = "[";
+        for (int col = 0; col < this.resourceCount; col += 1) {
+            int count = this.resources[col].availablePermits();
+            str += String.valueOf(count);
+            if (col < this.resources.length - 1) {
+                str += ", ";
+            }
+        }
+        str += "]";
+        return str;
+    }
+
 }
