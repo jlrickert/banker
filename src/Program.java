@@ -85,7 +85,7 @@ class Program {
     }
 
     private void initBank() {
-        this.bank = new Bank(this.resourceCount, this.customerCount);
+        this.bank = new Bank(this.customerCount, this.resourceCount);
     }
 
     private void initRandomCustomers() {

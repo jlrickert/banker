@@ -11,15 +11,19 @@ public class Bank {
     public final int resourceCount;
     public final int customerCount;
     public final Semaphore[] resources;
+    private final int[] maxResources;
     private final int[][] maximum;
     private int[][] allocation;
+    private int[][] need;
 
-    public Bank(int resourceCount, int customerCount) {
-        this.resourceCount = resourceCount;
+    public Bank(int customerCount, int resourceCount) {
         this.customerCount = customerCount;
-        this.resources = this.initResources();
-        this.maximum = this.initMaximum();
-        this.allocation = this.initAllocation();
+        this.resourceCount = resourceCount;
+        this.maxResources = this.initMaxResources(resourceCount);
+        this.resources = this.initResources(this.maxResources, resourceCount);
+        this.maximum = this.initMaximum(this.maxResources, customerCount, resourceCount);
+        this.need = new int[this.customerCount][this.resourceCount];
+        this.allocation = this.initAllocation(customerCount, resourceCount);
         this.printInital();
     }
 
@@ -32,7 +36,7 @@ public class Bank {
     }
 
     public void printInital() {
-        System.out.println("Bank - Initial Resources Available:");
+        System.out.println("Bank: Initial Resources Available:");
         this.printResources();
         this.printMaximum();
         System.out.println();
@@ -40,6 +44,7 @@ public class Bank {
 
     public boolean request(Customer customer, int id, int[] request) {
         if(!this.isSafe(request)) {
+            System.out.println("Bank: Not safe");
             return false;
         }
 
@@ -54,7 +59,6 @@ public class Bank {
         }
         this.printAllocationMatrix();
 
-        // this.allocateResources(request);
         this.printResources();
         return true;
     }
@@ -65,62 +69,65 @@ public class Bank {
     }
 
     public synchronized boolean isSafe(int[] request) {
+        this.updateNeed();
+
+        int[] avail = new int[this.resourceCount];
+        for (int i = 0; i < this.resourceCount; i += 1) {
+            avail[i] = this.resources[i].availablePermits();
+        }
+
+        boolean[] running = new boolean[this.customerCount];
+        for (int i = 0; i < this.customerCount; i += 1) {
+            running[i] = true;
+        }
+
+        while (this.runningCount(running) > 0) {
+            boolean atLeastOneAllocated = true;
+            for (int customer = 0; customer < this.customerCount; customer += 1) {
+                if (running[customer]) {
+                    boolean flag = true;
+                    for (int r = 0; r < this.resourceCount; r += 1) {
+                        int resource = avail[r] - this.need[customer][r];
+                        if (resource < 0) {
+                            flag = false;
+                        }
+                    }
+
+                    if (flag) {
+                        running[customer] = false;
+                        atLeastOneAllocated = true;
+                        for (int i = 0; i < this.resourceCount; i += 1) {
+                            avail[i] += this.allocation[customer][i];
+                        }
+                    }
+                }
+            }
+            if (!atLeastOneAllocated) {
+                return false;
+            }
+        }
+
         return true;
-        // boolean[] running = new boolean[this.customerCount];
-        // for (int i = 0; i , this.customerCount; i += 1) {
-        //     running[i] = true;
-        // }
-
-        // while (this.runningCount(running) > 0) {
-        //     boolean atLeastOneAllocated = false;
-        //     for (int customer = 0; customer < this.customerCount; customer += 1) {
-        //         if (running[customer]) {
-        //             ok;
-        //         }
-        //     }
-        // }
-
-
-        // boolean safe = true;
-
-        // // check if there currently are enough resources
-        // for (int r = 0; r < this.resourceCount; r += 1) {
-        //     int resource = this.resources[r].availablePermits();
-        //     if (request[r] > resource) {
-        //         safe = false;
-        //         break;
-        //     }
-        // }
-        // if (safe) {
-        //     return true;
-        // }
-
-        // if (!safe) {
-        //     for (int id = 0; id < this.customerCount; id += 1) {
-        //         safe = true;
-        //         for (int r = 0; r < this.resourceCount; r += 1) {
-        //             int resource = this.resources[r].availablePermits();
-        //             int available = resource + this.maximum[id][r];
-        //             if (request[r] > available) {
-        //                 safe = false;
-        //                 break;
-        //             }
-        //         }
-        //         if (safe) {
-        //             return true;
-        //         }
-        //     }
-        // }
-
-        // return safe;
     }
 
     private int runningCount(boolean[] running) {
         int count = 0;
         for (int i = 0; i < running.length; i += 1) {
-            count += 1;
+            if (running[i]) {
+                count += 1;
+            }
         }
         return count;
+    }
+
+    private void updateNeed() {
+        for (int row = 0; row < this.customerCount; row += 1) {
+            for (int col = 0; col < this.resourceCount; col += 1) {
+                int max = this.maximum[row][col];
+                int alloc = this.allocation[row][col];
+                this.need[row][col] = max - alloc;
+            }
+        }
     }
 
     private void allocateResources(int[] request) {
@@ -146,31 +153,39 @@ public class Bank {
         }
     }
 
-    private Semaphore[] initResources() {
-        Semaphore[] resources = new Semaphore[resourceCount];
+    private int[] initMaxResources(int resourceCount) {
+        int[] resources = new int[resourceCount];
         for (int i = 0; i < this.resourceCount; i += 1) {
             int n = Util.randomIntRange(this.MIN_RESOURCE, this.MAX_RESOURCE);
-            resources[i] = new Semaphore(n);
+            resources[i] = n;
         }
         return resources;
     }
 
-    private int[][] initMaximum() {
-        int[][] maximum = new int[this.customerCount][this.resourceCount];
-        for (int row = 0; row < this.customerCount; row += 1) {
-            for (int col = 0; col < this.resourceCount; col += 1) {
-                int resourceCount = this.resources[col].availablePermits();
-                int n = Util.randomIntRange(this.MIN_RESOURCE, resourceCount);
+    private Semaphore[] initResources(int[] resources, int resourceCount) {
+        Semaphore[] res = new Semaphore[resourceCount];
+        for (int i = 0; i < resourceCount; i += 1) {
+            res[i] = new Semaphore(resources[i]);
+        }
+        return res;
+    }
+
+    private int[][] initMaximum(int[] resources, int customerCount, int resourceCount) {
+        int[][] maximum = new int[customerCount][resourceCount];
+        for (int row = 0; row < customerCount; row += 1) {
+            for (int col = 0; col < resourceCount; col += 1) {
+                int count = resources[col];
+                int n = Util.randomIntRange(this.MIN_RESOURCE, count);
                 maximum[row][col] = n;
             }
         }
         return maximum;
     }
 
-    private int[][] initAllocation() {
-        int[][] allocation = new int[this.customerCount][this.resourceCount];
+    private int[][] initAllocation(int customerCount, int resourceCount) {
+        int[][] allocation = new int[customerCount][resourceCount];
         for (int i = 0; i < this.customerCount; i += 1) {
-            allocation[i] = new int[this.resourceCount];
+            allocation[i] = new int[resourceCount];
         }
         return allocation;
     }
