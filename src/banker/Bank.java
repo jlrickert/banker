@@ -38,13 +38,15 @@ public class Bank {
         System.out.println();
     }
 
-    public boolean request(Customer customer, int[] request) {
+    public boolean request(Customer customer, int id, int[] request) {
         if (this.isSafe(customer, request)) {
             this.addToAllocationMatrix(customer.id, request);
             {  // print request granted
                 String str = "Customer ";
                 str += String.valueOf(customer.id);
-                str += " request granted";
+                str += " request ";
+                str += String.valueOf(id);
+                str += " granted";
                 System.out.println(str);
             }
             this.printAllocationMatrix();
@@ -58,7 +60,7 @@ public class Bank {
         return true;
     }
 
-    public void release(Customer customer, int[] request) {
+    public void release(Customer customer, int id, int[] request) {
         this.removeFromAllocation(customer.id, request);
         this.printAllocationMatrix();
         for (int i = 0; i < this.resources.length; i += 1) {

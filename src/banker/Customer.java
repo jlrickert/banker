@@ -118,13 +118,13 @@ public class Customer implements Runnable {
     }
 
     private void handleRequest(int index, int[] request) {
-        if (this.bank.request(this, request)) {
+        if (this.bank.request(this, index, request)) {
             this.status.set(index, RequestStatus.PENDING);
         }
     }
 
     private void handleRelease(int index, int[] request) {
-        this.bank.release(this, request);
+        this.bank.release(this, index, request);
         this.status.set(index, RequestStatus.FINISHED);
         this.finished += 1;
     }
@@ -133,8 +133,6 @@ public class Customer implements Runnable {
         String str = "Customer ";
         str += String.valueOf(this.id);
         str += " requesting ";
-        str += String.valueOf(index);
-        str += " ";
         str += Util.stringify(request);
         System.out.println(str);
     }
@@ -143,8 +141,6 @@ public class Customer implements Runnable {
         String str = "Customer ";
         str += String.valueOf(this.id);
         str += " releasing ";
-        str += String.valueOf(index);
-        str += ": ";
         str += Util.stringify(request);
         System.out.println(str);
     }
