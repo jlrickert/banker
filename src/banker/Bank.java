@@ -10,7 +10,7 @@ public class Bank {
     public static final int MIN_RESOURCE = 1;
     public final int resourceCount;
     public final int customerCount;
-    private final Semaphore[] resources;
+    public final Semaphore[] resources;
     private final int[][] maximum;
     private int[][] allocation;
 
@@ -39,41 +39,88 @@ public class Bank {
     }
 
     public boolean request(Customer customer, int id, int[] request) {
-        if (this.isSafe(customer, request)) {
-            this.addToAllocationMatrix(customer.id, request);
-            {  // print request granted
-                String str = "Customer ";
-                str += String.valueOf(customer.id);
-                str += " request ";
-                str += String.valueOf(id);
-                str += " granted";
-                System.out.println(str);
-            }
-            this.printAllocationMatrix();
-
-            this.allocateResources(request);
-            this.printResources();
-            System.out.println();
-        } else {
+        if(!this.isSafe(request)) {
             return false;
         }
+
+        this.addToAllocationMatrix(customer.id, request);
+        {  // print request granted
+            String str = "Customer ";
+            str += String.valueOf(customer.id);
+            str += " request ";
+            str += String.valueOf(id);
+            str += " granted";
+            System.out.println(str);
+        }
+        this.printAllocationMatrix();
+
+        // this.allocateResources(request);
+        this.printResources();
         return true;
     }
 
     public void release(Customer customer, int id, int[] request) {
         this.removeFromAllocation(customer.id, request);
         this.printAllocationMatrix();
-        for (int i = 0; i < this.resources.length; i += 1) {
-            this.resources[i].release(request[i]);
-        }
     }
 
-    public synchronized boolean isSafe(Customer customer, int[] request) {
-        if (true) {
-            return true;
+    public synchronized boolean isSafe(int[] request) {
+        return true;
+        // boolean[] running = new boolean[this.customerCount];
+        // for (int i = 0; i , this.customerCount; i += 1) {
+        //     running[i] = true;
+        // }
+
+        // while (this.runningCount(running) > 0) {
+        //     boolean atLeastOneAllocated = false;
+        //     for (int customer = 0; customer < this.customerCount; customer += 1) {
+        //         if (running[customer]) {
+        //             ok;
+        //         }
+        //     }
+        // }
+
+
+        // boolean safe = true;
+
+        // // check if there currently are enough resources
+        // for (int r = 0; r < this.resourceCount; r += 1) {
+        //     int resource = this.resources[r].availablePermits();
+        //     if (request[r] > resource) {
+        //         safe = false;
+        //         break;
+        //     }
+        // }
+        // if (safe) {
+        //     return true;
+        // }
+
+        // if (!safe) {
+        //     for (int id = 0; id < this.customerCount; id += 1) {
+        //         safe = true;
+        //         for (int r = 0; r < this.resourceCount; r += 1) {
+        //             int resource = this.resources[r].availablePermits();
+        //             int available = resource + this.maximum[id][r];
+        //             if (request[r] > available) {
+        //                 safe = false;
+        //                 break;
+        //             }
+        //         }
+        //         if (safe) {
+        //             return true;
+        //         }
+        //     }
+        // }
+
+        // return safe;
+    }
+
+    private int runningCount(boolean[] running) {
+        int count = 0;
+        for (int i = 0; i < running.length; i += 1) {
+            count += 1;
         }
-        System.out.println("Bank");
-        return false;
+        return count;
     }
 
     private void allocateResources(int[] request) {

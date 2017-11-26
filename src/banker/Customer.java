@@ -117,9 +117,19 @@ public class Customer implements Runnable {
         }
     }
 
-    private void handleRequest(int index, int[] request) {
+    private  void handleRequest(int index, int[] request) {
         if (this.bank.request(this, index, request)) {
+            for (int i = 0; i < this.bank.resources.length; i += 1) {
+                try {
+                    this.bank.resources[i].acquire(request[i]);
+                } catch (InterruptedException e) {
+                    System.out.println("Error " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
             this.status.set(index, RequestStatus.PENDING);
+            this.bank.printResources();
+            System.out.println();
         }
     }
 
@@ -127,6 +137,13 @@ public class Customer implements Runnable {
         this.bank.release(this, index, request);
         this.status.set(index, RequestStatus.FINISHED);
         this.finished += 1;
+
+        for (int i = 0; i < this.bank.resources.length; i += 1) {
+            this.bank.resources[i].release(request[i]);
+        }
+        this.bank.printResources();
+        System.out.println();
+
     }
 
     private void printRequest(int id, int index, int[] request) {
