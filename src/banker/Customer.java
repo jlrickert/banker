@@ -11,6 +11,7 @@ public class Customer implements Runnable {
         FINISHED, // Has return resources
     }
 
+    public static final MIN_REQUESTS = 3;
     public final int id;
     private int[] maxRequests;
     private Bank bank;
@@ -48,7 +49,7 @@ public class Customer implements Runnable {
         return this.finished;
     }
 
-    public synchronized boolean hasUnfinishedRequest() {
+    public boolean hasUnfinishedRequest() {
         boolean hasWaiting = this.status.contains(RequestStatus.WAITING);
         boolean hasPending = this.status.contains(RequestStatus.PENDING);
         return hasWaiting || hasPending;
@@ -57,23 +58,25 @@ public class Customer implements Runnable {
     public void run() {
         boolean hasUnfinished = this.hasUnfinishedRequest();
         while (!this.isFinished() && hasUnfinished) {
-            if (hasUnfinished) {
-                try {
-                    int requestIndex = this.getUnfinishedRandomRequest();
-                    this.handleTransact(requestIndex);
-                    Thread.sleep(100 * Util.randomIntRange(10, 50));
-                } catch (InterruptedException e) {
-                    System.out.println("Error " + e.getMessage());
-                    e.printStackTrace();
-                }
-            } else {
+            boolean belowMin = this.status.size() < this.MIN_REQUESTS;
+            if (!hasUnfinished || belowMin && !hasUnfinished) {
                 Thread.yield();
+                continue;
+            }
+
+            try {
+                int requestIndex = this.getUnfinishedRandomRequest();
+                this.handleTransact(requestIndex);
+                Thread.sleep(100 * Util.randomIntRange(10, 50));
+            } catch (InterruptedException e) {
+                System.out.println("Error " + e.getMessage());
+                e.printStackTrace();
             }
             hasUnfinished = this.hasUnfinishedRequest();
         }
     }
 
-    private synchronized int getUnfinishedRandomRequest() {
+    private int getUnfinishedRandomRequest() {
         int unfinished = 0;
         for (int i = 0; i < this.status.size(); i += 1) {
             if (this.status.get(i) != RequestStatus.FINISHED) {
@@ -97,9 +100,11 @@ public class Customer implements Runnable {
         if (status == RequestStatus.WAITING) {
             this.printRequest(index, request);
             this.bank.request(this, request);
-        } else {
+        } else if (status == RequestStatus.PENDING){
             this.printRelease(index, request);
             this.bank.release(this, request);
+        } else {
+            System.out.println("This shouldn't happen");
         }
     }
 

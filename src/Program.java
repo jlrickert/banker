@@ -53,7 +53,7 @@ class Program {
                                // requests
                 while (true) {
                     int n = Util.randomIntRange(1, 100);
-                    if (count <= 3 || n < num) {
+                    if (count <= Customer.MIN_REQUESTS || n < num) {
                         this.customers[i].newRandomRequest();
                         num >>= 2;
                     } else {
