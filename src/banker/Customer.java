@@ -11,7 +11,7 @@ public class Customer implements Runnable {
         FINISHED, // Has return resources
     }
 
-    public static final MIN_REQUESTS = 3;
+    public static final int MIN_REQUESTS = 3;
     public final int id;
     private int[] maxRequests;
     private Bank bank;
@@ -49,7 +49,7 @@ public class Customer implements Runnable {
         return this.finished;
     }
 
-    public boolean hasUnfinishedRequest() {
+    private boolean hasUnfinishedRequest() {
         boolean hasWaiting = this.status.contains(RequestStatus.WAITING);
         boolean hasPending = this.status.contains(RequestStatus.PENDING);
         return hasWaiting || hasPending;
@@ -57,10 +57,11 @@ public class Customer implements Runnable {
 
     public void run() {
         boolean hasUnfinished = this.hasUnfinishedRequest();
-        while (!this.isFinished() && hasUnfinished) {
-            boolean belowMin = this.status.size() < this.MIN_REQUESTS;
-            if (!hasUnfinished || belowMin && !hasUnfinished) {
+        boolean belowMin = this.status.size() < this.MIN_REQUESTS;
+        while (!this.isFinished() && hasUnfinished || belowMin) {
+            if (!hasUnfinished) {
                 Thread.yield();
+                hasUnfinished = this.hasUnfinishedRequest();
                 continue;
             }
 
@@ -98,28 +99,35 @@ public class Customer implements Runnable {
         RequestStatus status = this.status.get(index);
         int[] request = this.requests.get(index);
         if (status == RequestStatus.WAITING) {
-            this.printRequest(index, request);
-            this.bank.request(this, request);
+            this.printRequest(index, index, request);
+            if (this.bank.request(this, request)) {
+                this.status.set(index, RequestStatus.PENDING);
+            }
         } else if (status == RequestStatus.PENDING){
-            this.printRelease(index, request);
+            this.printRelease(index, index, request);
             this.bank.release(this, request);
+            this.status.set(index, RequestStatus.FINISHED);
         } else {
             System.out.println("This shouldn't happen");
         }
     }
 
-    private void printRequest(int id, int[] request) {
+    private void printRequest(int id, int index, int[] request) {
         String str = "Customer ";
         str += String.valueOf(this.id);
-        str += " requesting ";
+        str += " requesting Tx:";
+        str += String.valueOf(index);
+        str += " ";
         str += Util.stringify(request);
         System.out.println(str);
     }
 
-    private void printRelease(int id, int[] request) {
+    private void printRelease(int id, int index, int[] request) {
         String str = "Customer ";
         str += String.valueOf(this.id);
-        str += " releasing ";
+        str += " releasing Tx:";
+        str += String.valueOf(index);
+        str += " ";
         str += Util.stringify(request);
         System.out.println(str);
     }
