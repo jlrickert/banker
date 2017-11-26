@@ -40,17 +40,17 @@ public class Bank {
 
     public boolean request(Customer customer, int[] request) {
         if (this.isSafe(customer, request)) {
-            this.addToAllocation(customer.id, request);
-            for (int i = 0; i < this.resources.length; i += 1) {
-                try {
-                    this.resources[i].acquire(request[i]);
-                } catch (InterruptedException e) {
-                    System.out.println("Error " + e.getMessage());
-                    e.printStackTrace();
-                }
+            this.addToAllocationMatrix(customer.id, request);
+            {  // print request granted
+                String str = "Customer ";
+                str += String.valueOf(customer.id);
+                str += " request granted";
+                System.out.println(str);
             }
+            this.printAllocationMatrix();
+
+            this.allocateResources(request);
             this.printResources();
-            this.printAllocated();
             System.out.println();
         } else {
             return false;
@@ -60,10 +60,10 @@ public class Bank {
 
     public void release(Customer customer, int[] request) {
         this.removeFromAllocation(customer.id, request);
+        this.printAllocationMatrix();
         for (int i = 0; i < this.resources.length; i += 1) {
             this.resources[i].release(request[i]);
         }
-        this.printAllocated();
     }
 
     public synchronized boolean isSafe(Customer customer, int[] request) {
@@ -74,7 +74,18 @@ public class Bank {
         return false;
     }
 
-    private synchronized void addToAllocation(int row, int[] values) {
+    private void allocateResources(int[] request) {
+        for (int i = 0; i < this.resources.length; i += 1) {
+            try {
+                this.resources[i].acquire(request[i]);
+            } catch (InterruptedException e) {
+                System.out.println("Error " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private synchronized void addToAllocationMatrix(int row, int[] values) {
         for (int i = 0; i < this.resourceCount; i += 1) {
             this.allocation[row][i] += values[i];
         }
@@ -130,7 +141,7 @@ public class Bank {
         }
     }
 
-    public synchronized void printAllocated() {
+    public synchronized void printAllocationMatrix() {
         System.out.println("Bank - Allocation: ");
         for (int row = 0; row < this.customerCount; row += 1) {
             String str = "\t";
