@@ -10,17 +10,31 @@ public class Bank {
     public static final int MIN_RESOURCE = 1;
     public final int resourceCount;
     public final int customerCount;
-    private final Semaphore[] resources;
+    public final Semaphore[] resources;
     private final int[][] maximum;
     private int[][] allocation;
 
-    public Bank(int resourceCount, int customerCount) {
+    private boolean isOpen;
+    private TxHandler handler;
+    private Thread handlerThread;
+
+    public Bank(TxHandler handler, int resourceCount, int customerCount) {
         this.resourceCount = resourceCount;
         this.customerCount = customerCount;
         this.resources = this.initResources();
         this.maximum = this.initMaximum();
         this.allocation = this.initAllocation();
+
+        this.handler = initHandler(handler);
+
         this.printInital();
+        this.handler = handler;
+        this.isOpen = false;
+    }
+
+    private TxHandler initHandler(TxHandler handler) {
+        handler.setResources(this.resources);
+        return handler;
     }
 
     public int resourceLength() {
@@ -33,58 +47,81 @@ public class Bank {
 
     public void printInital() {
         System.out.println("Bank - Initial Resources Available:");
-        this.printResources();
+        this.handler.printResources();
         this.printMaximum();
         System.out.println();
     }
 
-    public boolean request(Customer customer, int id, int[] request) {
-        if (this.isSafe(customer, request)) {
-            this.addToAllocationMatrix(customer.id, request);
+    public synchronized boolean request(Transaction trans) {
+        if (this.isSafe(trans)) {
+            this.handler.add(trans);
+            this.addToAllocationMatrix(trans.owner.id, trans.request);
             {  // print request granted
                 String str = "Customer ";
-                str += String.valueOf(customer.id);
+                str += String.valueOf(trans.owner.id);
                 str += " request ";
-                str += String.valueOf(id);
+                str += String.valueOf(trans.id);
                 str += " granted";
                 System.out.println(str);
             }
             this.printAllocationMatrix();
-
-            this.allocateResources(request);
-            this.printResources();
-            System.out.println();
         } else {
+            System.out.println("Bank resources unavailable");
             return false;
         }
         return true;
     }
 
-    public void release(Customer customer, int id, int[] request) {
-        this.removeFromAllocation(customer.id, request);
+    public void release(Transaction trans) {
+        this.removeFromAllocation(trans.owner.id, trans.request);
         this.printAllocationMatrix();
-        for (int i = 0; i < this.resources.length; i += 1) {
-            this.resources[i].release(request[i]);
-        }
+        this.handler.handleRelease(trans);
     }
 
-    public synchronized boolean isSafe(Customer customer, int[] request) {
-        if (true) {
-            return true;
-        }
-        System.out.println("Bank");
-        return false;
-    }
+    public boolean isSafe(Transaction trans) {
+        boolean safe = true;
 
-    private void allocateResources(int[] request) {
-        for (int i = 0; i < this.resources.length; i += 1) {
-            try {
-                this.resources[i].acquire(request[i]);
-            } catch (InterruptedException e) {
-                System.out.println("Error " + e.getMessage());
-                e.printStackTrace();
+        // check if there currently are enough resources
+        for (int r = 0; r < this.resourceCount; r += 1) {
+            int resource = this.resources[r].availablePermits();
+            if (trans.request[r] > resource) {
+                safe = false;
+                break;
             }
         }
+
+        if (!safe) {
+            for (int id = 0; id < this.customerCount; id += 1) {
+                safe = true;
+                for (int r = 0; r < this.resourceCount; r += 1) {
+                    int resource = this.resources[r].availablePermits();
+                    int available = resource + this.allocation[id][r];
+                    if (trans.request[r] > available) {
+                        safe = false;
+                        break;
+                    }
+                }
+                if (safe) {
+                    return true;
+                }
+            }
+        }
+
+        return safe;
+    }
+
+    public void close() {
+        System.out.println("Closing bank");
+        this.isOpen = false;
+        this.handler.stop();
+    }
+
+    public void start() {
+        System.out.println("Bank is now accepting requests");
+        this.isOpen = true;
+
+        this.handlerThread = new Thread(this.handler);
+        this.handlerThread.start();
     }
 
     private synchronized void addToAllocationMatrix(int row, int[] values) {
@@ -128,12 +165,6 @@ public class Bank {
         return allocation;
     }
 
-    public synchronized void printResources() {
-        String str = "Available Resources: ";
-        str += this.stringifiedResources();
-        System.out.println(str);
-    }
-
     public synchronized void printMaximum() {
         System.out.println("Bank - Max");
         for (int row = 0; row < this.customerCount; row += 1) {
@@ -152,18 +183,4 @@ public class Bank {
         }
         System.out.println();
     }
-
-    private String stringifiedResources() {
-        String str = "[";
-        for (int col = 0; col < this.resourceCount; col += 1) {
-            int count = this.resources[col].availablePermits();
-            str += String.valueOf(count);
-            if (col < this.resources.length - 1) {
-                str += ", ";
-            }
-        }
-        str += "]";
-        return str;
-    }
-
 }

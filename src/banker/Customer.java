@@ -54,6 +54,7 @@ public class Customer implements Runnable {
 
     public synchronized void close() {
         this.closed = true;
+        this.notify();
     }
 
     public void run() {
@@ -73,18 +74,20 @@ public class Customer implements Runnable {
     }
 
     private synchronized int getUnfinishedRandomRequest() {
+        // wait if all requests are finished and there are more incoming
         if (this.finished == this.status.size()) {
             try {
+                // NOTE: this could be closed while waiting and nothing could have
+                // been added resulting in return nil. Closed gets called right
+                // away so this isn't a problem
                 this.wait();
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 System.out.println("Error " + e.getMessage());
                 e.printStackTrace();
             }
         }
 
-        // Random doesn't seem random;
-        {
+        {  // NOTE: this seems to favor the lower requests
             int unfinished = 0;
             for (int i = 0; i < this.status.size(); i += 1) {
                 if (this.status.get(i) != RequestStatus.FINISHED) {
@@ -118,13 +121,15 @@ public class Customer implements Runnable {
     }
 
     private void handleRequest(int index, int[] request) {
-        if (this.bank.request(this, index, request)) {
+        Transaction trans = new Transaction(this, index, request);
+        if (this.bank.request(trans)) {
             this.status.set(index, RequestStatus.PENDING);
         }
     }
 
     private void handleRelease(int index, int[] request) {
-        this.bank.release(this, index, request);
+        Transaction trans = new Transaction(this, index, request);
+        this.bank.release(trans);
         this.status.set(index, RequestStatus.FINISHED);
         this.finished += 1;
     }

@@ -8,6 +8,12 @@ public class Util {
         return minimum + (int)(Math.random() * maximum);
     }
 
+    public static void initialize(int[] xs, int val) {
+        for (int i = 0; i < xs.length; i += 1) {
+            xs[i] = val;
+        }
+    }
+
     public static String stringify(int[] xs) {
         String str = "[";
         for (int i = 0; i < xs.length; i += 1) {

@@ -8,6 +8,7 @@ class Program {
     private int resourceCount;
     private int customerCount;
 
+    private TxHandler handler;
     private Bank bank;
     private Customer[] customers;
 
@@ -38,9 +39,8 @@ class Program {
     }
 
     public void start() {
-        Thread[] pids = new Thread[this.customerCount];
-
         // spin up all customer threads
+        Thread[] pids = new Thread[this.customerCount];
         for (int i = 0; i < this.customerCount; i += 1) {
             pids[i] = new Thread(this.customers[i]);
             pids[i].start();
@@ -65,6 +65,8 @@ class Program {
             }
         }
 
+        bank.start();
+
         // Wait for all customer threads to be done
         boolean flag = true;
         while (flag) {
@@ -76,6 +78,7 @@ class Program {
                 }
             }
         }
+        this.bank.close();
     }
 
     // maybe throw error on problem
@@ -85,7 +88,8 @@ class Program {
     }
 
     private void initBank() {
-        this.bank = new Bank(this.resourceCount, this.customerCount);
+        TxHandler handler = new TxHandler();
+        this.bank = new Bank(handler, this.resourceCount, this.customerCount);
     }
 
     private void initRandomCustomers() {
