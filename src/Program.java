@@ -61,9 +61,7 @@ class Program {
                         break;
                     }
                 }
-
-                // tell the customer thread there is no more incoming requests
-                this.customers[i].finished();
+                this.customers[i].close();
             }
         }
 

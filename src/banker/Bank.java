@@ -10,8 +10,8 @@ public class Bank {
         public Handler() {
         }
     }
-    public static final int MAX_RESOURCE = 10;
-    public static final int MIN_RESOURCE = 1;
+    public static final int MAX_RESOURCE = 100;
+    public static final int MIN_RESOURCE = 10;
     public final int resourceCount;
     public final int customerCount;
     private final int[] resources;
