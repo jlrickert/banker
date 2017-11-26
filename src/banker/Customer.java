@@ -11,7 +11,7 @@ public class Customer implements Runnable {
         FINISHED, // Has return resources
     }
 
-    public static final MIN_REQUESTS = 3;
+    public static final int MIN_REQUESTS = 3;
     public final int id;
     private int[] maxRequests;
     private Bank bank;
