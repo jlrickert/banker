@@ -12,7 +12,6 @@ public class Customer implements Runnable {
     }
 
     public final int id;
-    private int[] resources;
     private int[] maxRequests;
     private Bank bank;
     private List<int[]> requests;
@@ -29,7 +28,6 @@ public class Customer implements Runnable {
     }
 
     public synchronized void newRequest(int[] requests) {
-        // this.bank.request(request);
         this.requests.add(requests);
         this.status.add(RequestStatus.WAITING);
     }
@@ -42,7 +40,7 @@ public class Customer implements Runnable {
         this.newRequest(request);
     }
 
-    public void finished() {
+    public synchronized void finished() {
         this.finished = true;
     }
 
@@ -50,27 +48,74 @@ public class Customer implements Runnable {
         return this.finished;
     }
 
-    public boolean hasUnfinishedRequest() {
-        return this.status.contains(RequestStatus.WAITING) ||
-            this.status.contains(RequestStatus.PENDING);
+    public synchronized boolean hasUnfinishedRequest() {
+        boolean hasWaiting = this.status.contains(RequestStatus.WAITING);
+        boolean hasPending = this.status.contains(RequestStatus.PENDING);
+        return hasWaiting || hasPending;
     }
 
     public void run() {
-        while (!this.finished || this.hasUnfinishedRequest()) {
-            if (!this.hasUnfinishedRequest() && this.isFinished()) {
-                Thread.yield();
-            } else {
+        boolean hasUnfinished = this.hasUnfinishedRequest();
+        while (!this.isFinished() && hasUnfinished) {
+            if (hasUnfinished) {
                 try {
+                    int requestIndex = this.getUnfinishedRandomRequest();
+                    this.handleTransact(requestIndex);
                     Thread.sleep(100 * Util.randomIntRange(10, 50));
-                    System.out.println("Running");
                 } catch (InterruptedException e) {
                     System.out.println("Error " + e.getMessage());
                     e.printStackTrace();
                 }
+            } else {
+                Thread.yield();
+            }
+            hasUnfinished = this.hasUnfinishedRequest();
+        }
+    }
+
+    private synchronized int getUnfinishedRandomRequest() {
+        int unfinished = 0;
+        for (int i = 0; i < this.status.size(); i += 1) {
+            if (this.status.get(i) != RequestStatus.FINISHED) {
+                unfinished += 1;
+            }
+        }
+
+        int index = 0;
+        int begin = Util.randomIntRange(0, unfinished - 1);
+        for (int i = begin; true; i += 1) {
+            index = i % this.status.size();
+            if (this.status.get(index) != RequestStatus.FINISHED) {
+                return index;
             }
         }
     }
 
-    private void makeRequest() {
+    private void handleTransact(int index) {
+        RequestStatus status = this.status.get(index);
+        int[] request = this.requests.get(index);
+        if (status == RequestStatus.WAITING) {
+            this.printRequest(index, request);
+            this.bank.request(this, request);
+        } else {
+            this.printRelease(index, request);
+            this.bank.release(this, request);
+        }
+    }
+
+    private void printRequest(int id, int[] request) {
+        String str = "Customer ";
+        str += String.valueOf(this.id);
+        str += " requesting ";
+        str += Util.stringify(request);
+        System.out.println(str);
+    }
+
+    private void printRelease(int id, int[] request) {
+        String str = "Customer ";
+        str += String.valueOf(this.id);
+        str += " releasing ";
+        str += Util.stringify(request);
+        System.out.println(str);
     }
 }

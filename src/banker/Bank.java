@@ -1,7 +1,6 @@
 package banker;
 
 import java.util.*;
-import java.util.concurrent.Semaphore;
 
 import banker.errors.*;
 
@@ -15,7 +14,7 @@ public class Bank {
     public static final int MIN_RESOURCE = 1;
     public final int resourceCount;
     public final int customerCount;
-    private final Semaphore[] resources; // may not need to be a semaphore
+    private final int[] resources;
     private final int[][] maximum;
     private int[][] allocation;
 
@@ -41,12 +40,20 @@ public class Bank {
         this.printMaximum();
     }
 
-    public synchronized void transact(Customer customer, int[] request) {
-        if (this.isSafe(request)) {
+    public synchronized void request(Customer customer, int[] request) {
+        // String id = String.
+        // System.out.println(Customer.id)
+        // if (this.isSafe(request)) {
+        // } else {
+        //     // throw some unspecified error
+        //     // throw new NotSafeError();
+        // }
+    }
 
-        } else {
-            // throw some unspecified error
-            // throw new NotSafeError();
+    public synchronized void release(Customer customer, int[] request) {
+        int id = customer.id;
+        for (int col = 0; col < this.allocation[col].length; col += 1) {
+            this.allocation[id][col] -= request[col];
         }
     }
 
@@ -54,11 +61,11 @@ public class Bank {
         return true;
     }
 
-    private Semaphore[] initResources() {
-        Semaphore[] resources = new Semaphore[resourceCount];
+    private int[] initResources() {
+        int[] resources = new int[resourceCount];
         for (int i = 0; i < this.resourceCount; i += 1) {
             int n = Util.randomIntRange(this.MIN_RESOURCE, this.MAX_RESOURCE);
-            resources[i] = new Semaphore(n);
+            resources[i] = n;
         }
         return resources;
     }
@@ -66,9 +73,8 @@ public class Bank {
     private int[][] initMaximum() {
         int[][] maximum = new int[this.customerCount][this.resourceCount];
         for (int row = 0; row < this.customerCount; row += 1) {
-            maximum[row] = new int[this.resourceCount];
             for (int col = 0; col < this.resourceCount; col += 1) {
-                int resourceCount = this.resources[col].availablePermits();
+                int resourceCount = this.resources[col];
                 int n = Util.randomIntRange(this.MIN_RESOURCE, resourceCount);
                 maximum[row][col] = n;
             }
@@ -89,7 +95,7 @@ public class Bank {
 
         String str = "\t[";
         for (int i = 0; i < this.resourceCount; i += 1) {
-            int count = this.resources[i].availablePermits();
+            int count = this.resources[i];
             str += String.valueOf(count);
             if (i < this.resources.length - 1) {
                 str += ", ";
@@ -102,14 +108,8 @@ public class Bank {
     private void printMaximum() {
         System.out.println("Bank - Max");
         for (int row = 0; row < this.customerCount; row += 1) {
-            String str = "\t[";
-            for (int col = 0; col < this.resourceCount; col += 1) {
-                str += this.maximum[row][col];
-                if (col < this.resourceCount - 1) {
-                    str += ", ";
-                }
-            }
-            str += "]";
+            String str = "\t";
+            str += Util.stringify(this.maximum[row]);
             System.out.println(str);
         }
     }
@@ -117,14 +117,8 @@ public class Bank {
     public void printAllocated() {
         System.out.println("Bank - Allocation");
         for (int row = 0; row < this.customerCount; row += 1) {
-            String str = "\t[";
-            for (int col = 0; col < this.resourceCount; col += 1) {
-                str += this.allocation[row][col];
-                if (col < this.resourceCount - 1) {
-                    str += ", ";
-                }
-            }
-            str += "]";
+            String str = "\t";
+            str = Util.stringify(this.allocation[row]);
             System.out.println(str);
         }
     }
