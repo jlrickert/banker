@@ -233,6 +233,13 @@ public class Bank {
         this.printResources();
     }
 
+    /**
+     * Releases the resources of the given request
+     *
+     * @param customer  the customer making the request
+     * @param id        the id of the of transaction
+     * @param request   the request to be processed
+    */
     public synchronized void release(Customer customer, int id, int[] request) {
         this.removeFromAllocation(customer.id, request);
         this.printAllocationMatrix();
@@ -243,7 +250,7 @@ public class Bank {
         this.notify();
     }
 
-    public boolean isSafe(int[] request) {
+    private boolean isSafe(int[] request) {
         this.updateNeed();
         int[] avail = this.copyResources();
 
@@ -337,12 +344,19 @@ public class Bank {
         return res;
     }
 
+    /*
+     * prints out the current available resources to standard out
+     */
     public synchronized void printResources() {
         String str = "Available Resources: ";
         str += Util.stringify(this.resources);
         Logger.log(str);
     }
 
+    /*
+     * prints out a matrix of the max resources that a customer may ever request
+     * to standard out.
+     */
     public synchronized void printMaximum() {
         Logger.log("Bank - Max");
         for (int row = 0; row < this.customerCount; row += 1) {
@@ -352,6 +366,9 @@ public class Bank {
         }
     }
 
+    /*
+     * prints out a matrix of that each customer has requested to standard out.
+     */
     public synchronized void printAllocationMatrix() {
         Logger.log("Bank - Allocation: ");
         for (int row = 0; row < this.customerCount; row += 1) {

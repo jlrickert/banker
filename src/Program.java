@@ -19,15 +19,15 @@ public class Program {
             Program prog = new Program(args);
             prog.start();
         } catch (MissingArgErr e) {
-            Logger.log("Error: " + e.getMessage());
+            Util.log("Error: " + e.getMessage());
             Program.printHelp();
             System.exit(0);
         } catch (ParseErr e) {
-            Logger.log("Error: " + e.getMessage());
+            Util.log("Error: " + e.getMessage());
             Program.printHelp();
             System.exit(0);
         } catch (InvalidArgumentErr e) {
-            Logger.log("Error: " + e.getMessage());
+            Util.log("Error: " + e.getMessage());
             Program.printHelp();
             System.exit(0);
         }
@@ -41,7 +41,7 @@ public class Program {
         String str = "";
         str += "Usage: " + programName;
         str += " resources customers";
-        Logger.log(str);
+        Util.log(str);
     }
 
     /**

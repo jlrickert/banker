@@ -4,8 +4,12 @@ package banker;
 import banker.errors.*;
 import java.util.*;
 
+/**
+ * Customer is an entity that is able to have requests loaded and be able to
+ * make requests to its associated bank.
+ */
 public class Customer implements Runnable {
-    enum RequestStatus {
+    private enum RequestStatus {
         WAITING,  // In the queue to be wanting to allocate resource
         PENDING,  // has resources allocated
         FINISHED, // Has return resources
@@ -20,6 +24,12 @@ public class Customer implements Runnable {
     private int finished;  // number of finished threads
     private boolean closed;
 
+    /*
+     * Constructs a customer for a specific bank
+     *
+     * @param id  customer identification
+     * @param bank  bank customer is associated with
+     */
     public Customer(int id, Bank bank) {
         this.id = id;
         this.bank = bank;
@@ -28,11 +38,25 @@ public class Customer implements Runnable {
         this.maximum = bank.getMaximum(this.id);
     }
 
-    public void addRequest(int[] requests) {
-        this.requests.add(requests);
+    /**
+     * Add request to the associated pool of requests that the customer will
+     * make
+     *
+     * @param request  an array resources that the request will ask to borrow
+     *                 from the bank
+     */
+    public void addRequest(int[] request) {
+        this.requests.add(request);
         this.status.add(RequestStatus.WAITING);
     }
 
+    /**
+     * Generates a set of valid requests where the sum of the requests will not
+     * exceed the maximum.
+     *
+     * @param requestCount  number of requests to be generated for this
+     *                      customer.
+     */
     public void newRandomRequests(int requestCount) {
         int[][] request = new int[requestCount][this.maximum.length];
         for (int i = 0; i < requestCount; i += 1) {
@@ -86,14 +110,30 @@ public class Customer implements Runnable {
         return hasWaiting || hasPending;
     }
 
+    /**
+     * Test if the customer has any unfinished requests
+     */
     public boolean isFinished() {
         return this.closed && this.finished == this.status.size();
     }
 
+    /**
+     * Closes the request addition window. Letting the thread know that there
+     * will be no additions to the request pool.
+     */
     public void close() {
         this.closed = true;
     }
 
+    /**
+     * Start the process of running requests in the request set.
+     *
+     * This will continuously select a non finished request randomly every 1 to
+     * 5 second. The selected resource will either request or release resources
+     * from the bank depending on the state of the transaction. This process
+     * will run until all requests have moved from the WAITING state, to the
+     * PENDING state, and then to the FINISHED state.
+     */
     public void run() {
         while (!this.closed) {
             Thread.yield();
@@ -105,14 +145,14 @@ public class Customer implements Runnable {
                 int requestIndex = this.getUnfinishedRandomRequest();
                 this.handleTransact(requestIndex);
             } catch (InterruptedException e) {
-                Logger.log("Error " + e.getMessage());
+                Util.log("Error " + e.getMessage());
                 e.printStackTrace();
             }
         }
         String str = "Customer ";
         str += String.valueOf(this.id);
         str += " finished";
-        Logger.log(str);
+        Util.log(str);
     }
 
     private int getUnfinishedRandomRequest() {
@@ -148,7 +188,7 @@ public class Customer implements Runnable {
             this.printRelease(this.id, index, request);
             this.handleRelease(index, request);
         } else {
-            Logger.log("This shouldn't happen");
+            Util.log("This shouldn't happen");
         }
     }
 
@@ -168,7 +208,7 @@ public class Customer implements Runnable {
         str += String.valueOf(this.id);
         str += " requesting ";
         str += Util.stringify(request);
-        Logger.log(str);
+        Util.log(str);
     }
 
     private void printRelease(int id, int index, int[] request) {
@@ -176,6 +216,6 @@ public class Customer implements Runnable {
         str += String.valueOf(this.id);
         str += " releasing ";
         str += Util.stringify(request);
-        Logger.log(str);
+        Util.log(str);
     }
 }
