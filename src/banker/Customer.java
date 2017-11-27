@@ -28,18 +28,20 @@ public class Customer implements Runnable {
         this.maxRequests = bank.getMaximum(this.id);
     }
 
-    public synchronized void newRequest(int[] requests) {
+    public synchronized void addRequest(int[] requests) {
         this.requests.add(requests);
         this.status.add(RequestStatus.WAITING);
         this.notify();
     }
 
-    public void newRandomRequest() {
-        int[] request = new int[this.bank.resourceCount];
-        for (int i = 0; i < this.bank.resourceCount; i += 1) {
-            request[i] = Util.randomIntRange(1, this.maxRequests[i] / 3 + 1);
+    public void newRandomRequests(int n) {
+        for (int i = 0; i < n; i += 1) {
+            int[] request = new int[this.bank.resourceCount];
+            for (int j = 0; j < this.bank.resourceCount; j += 1) {
+                request[j] = Util.randomIntRange(1, this.maxRequests[j] / 3 + 1);
+            }
+            this.addRequest(request);
         }
-        this.newRequest(request);
     }
 
     private boolean hasUnfinishedRequest() {
@@ -58,7 +60,6 @@ public class Customer implements Runnable {
 
     public void run() {
         boolean hasUnfinished = this.hasUnfinishedRequest();
-        boolean belowMin = this.status.size() < this.MIN_REQUESTS;
         while (!this.isFinished()) {
             try {
                 Thread.sleep(100 * Util.randomIntRange(10, 50));
@@ -107,26 +108,49 @@ public class Customer implements Runnable {
         RequestStatus status = this.status.get(index);
         int[] request = this.requests.get(index);
         if (status == RequestStatus.WAITING) {
-            this.printRequest(index, index, request);
-            if (this.bank.request(this, request)) {
-                this.status.set(index, RequestStatus.PENDING);
-            }
+            this.printRequest(this.id, index, request);
+            this.handleRequest(index, request);
         } else if (status == RequestStatus.PENDING){
-            this.printRelease(index, index, request);
-            this.bank.release(this, request);
-            this.status.set(index, RequestStatus.FINISHED);
-            this.finished += 1;
+            this.printRelease(this.id, index, request);
+            this.handleRelease(index, request);
         } else {
             System.out.println("This shouldn't happen");
         }
     }
 
+    private  void handleRequest(int index, int[] request) {
+        if (this.bank.request(this, index, request)) {
+            for (int i = 0; i < this.bank.resources.length; i += 1) {
+                try {
+                    this.bank.resources[i].acquire(request[i]);
+                } catch (InterruptedException e) {
+                    System.out.println("Error " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            this.status.set(index, RequestStatus.PENDING);
+            this.bank.printResources();
+            System.out.println();
+        }
+    }
+
+    private void handleRelease(int index, int[] request) {
+        this.bank.release(this, index, request);
+        this.status.set(index, RequestStatus.FINISHED);
+        this.finished += 1;
+
+        for (int i = 0; i < this.bank.resources.length; i += 1) {
+            this.bank.resources[i].release(request[i]);
+        }
+        this.bank.printResources();
+        System.out.println();
+
+    }
+
     private void printRequest(int id, int index, int[] request) {
         String str = "Customer ";
         str += String.valueOf(this.id);
-        str += " requesting TX ";
-        str += String.valueOf(index);
-        str += " ";
+        str += " requesting ";
         str += Util.stringify(request);
         System.out.println(str);
     }
@@ -134,9 +158,7 @@ public class Customer implements Runnable {
     private void printRelease(int id, int index, int[] request) {
         String str = "Customer ";
         str += String.valueOf(this.id);
-        str += " releasing TX ";
-        str += String.valueOf(index);
-        str += " ";
+        str += " releasing ";
         str += Util.stringify(request);
         System.out.println(str);
     }

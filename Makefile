@@ -1,6 +1,3 @@
-PROJECT = banker
-MAIN = banker
-
 JFLAGS = -g
 JAVA = java
 JAVAC = javac
@@ -14,13 +11,14 @@ CLASSES := $(SOURCES:src/%.java=$(BUILDDIR)/%.class)
 
 all: run
 
-doc:
-
 run: build
 	@cd target
 	@$(JAVA) -cp $(BUILDDIR) Program $(filter-out $@, $(MAKECMDGOALS))
 
 build: _target $(CLASSES)
+
+docs: _target
+	javadoc -sourcepath $(SRCDIR) -d $(BUILDDIR)/docs $(SOURCES)
 
 clean:
 	@rm -rf ./target
@@ -33,6 +31,7 @@ $(CLASSES): $(BUILDDIR)/%.class : $(SRCDIR)/%.java
 
 _target:
 	@mkdir -p $(BUILDDIR)
+	@mkdir -p $(BUILDDIR)/docs
 
 %:
 	@true
