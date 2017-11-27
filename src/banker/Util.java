@@ -3,8 +3,8 @@ package banker;
 import java.math.*;
 
 public class Util {
-    public static int randomIntRange(int minimum, int maximum) {
-        return minimum + (int)(Math.random() * maximum);
+    public static int randomIntRange(int min, int max) {
+        return min + (int)(Math.random() * (max - min + 1));
     }
 
     public static String stringify(int[] xs) {

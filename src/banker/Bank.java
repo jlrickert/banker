@@ -110,15 +110,15 @@ public class Bank {
     }
 
     public void printInital() {
-        System.out.println("Bank: Initial Resources Available:");
+        Logger.log("Bank: Initial Resources Available:");
         this.printResources();
         this.printMaximum();
-        System.out.println();
+        Logger.log("");
     }
 
-    public boolean request(Customer customer, int id, int[] request) {
+    public synchronized boolean request(Customer customer, int id, int[] request) {
         if (!this.isSafe(request)) {
-            System.out.println("Bank: Not safe");
+            Logger.log("Bank: Not safe");
             return false;
         }
 
@@ -129,13 +129,12 @@ public class Bank {
             str += " request ";
             str += String.valueOf(id);
             str += " granted";
-            System.out.println(str);
+            Logger.log(str);
         }
         this.printAllocationMatrix();
-
         this.allocateRequest(request);
-
         this.printResources();
+        Logger.log("");
         return true;
     }
 
@@ -145,7 +144,7 @@ public class Bank {
                 try {
                     this.wait();
                 } catch (InterruptedException e) {
-                    System.out.println("Error " + e.getMessage());
+                    Logger.log("Error " + e.getMessage());
                     e.printStackTrace();
                 }
                 continue;
@@ -165,39 +164,47 @@ public class Bank {
         this.printResources();
     }
 
-    public synchronized boolean isSafe(int[] request) {
+    public boolean isSafe(int[] request) {
         this.updateNeed();
         int[] avail = this.copyResources();
 
-        boolean[] running = new boolean[this.customerCount];
+        boolean[] finish = new boolean[this.customerCount];
         for (int i = 0; i < this.customerCount; i += 1) {
-            running[i] = true;
+            finish[i] = false;
         }
 
-        while (this.runningCount(running) > 0) {
-            boolean atLeastOneAllocated = true;
+        boolean check = true;
+        while (check) {
+            check = false;
             for (int customer = 0; customer < this.customerCount; customer += 1) {
-                if (running[customer]) {
-                    boolean flag = true;
-                    for (int r = 0; r < this.resourceCount; r += 1) {
-                        int resource = avail[r] - need[customer][r];
-                        if (resource < 0) {
-                            flag = false;
+                if (!finish[customer]) {
+                    int r = 0;
+                    for (; r < this.resourceCount; r += 1) {
+                        if (need[customer][r] > avail[r]) {
+                            break;
                         }
                     }
 
-                    if (flag) {
-                        running[customer] = false;
-                        atLeastOneAllocated = true;
-                        for (int i = 0; i < this.resourceCount; i += 1) {
-                            avail[i] += this.allocation[customer][i];
+                    if (r == this.resourceCount) {
+                        for (r = 0; r < this.resourceCount; r += 1) {
+                            avail[r] += this.allocation[customer][r];
                         }
+                        finish[customer] = true;
+                        check = true;
+                        // sequence += customer;
                     }
                 }
             }
-            if (!atLeastOneAllocated) {
-                return false;
+        }
+        int i = 0;
+        for (;i < this.customerCount; i += 1) {
+            if (!finish[i]) {
+                break;
             }
+        }
+
+        if (i != this.customerCount) {
+            return false;
         }
 
         return true;
@@ -254,26 +261,26 @@ public class Bank {
     public synchronized void printResources() {
         String str = "Available Resources: ";
         str += Util.stringify(this.resources);
-        System.out.println(str);
+        Logger.log(str);
     }
 
     public synchronized void printMaximum() {
-        System.out.println("Bank - Max");
+        Logger.log("Bank - Max");
         for (int row = 0; row < this.customerCount; row += 1) {
             String str = "\t";
             str += Util.stringify(this.maximum[row]);
-            System.out.println(str);
+            Logger.log(str);
         }
     }
 
     public synchronized void printAllocationMatrix() {
-        System.out.println("Bank - Allocation: ");
+        Logger.log("Bank - Allocation: ");
         for (int row = 0; row < this.customerCount; row += 1) {
             String str = "\t";
             str += Util.stringify(this.allocation[row]);
-            System.out.println(str);
+            Logger.log(str);
         }
-        System.out.println();
+        Logger.log("");
     }
 
     private String stringifiedResources() {

@@ -13,7 +13,7 @@ public class Customer implements Runnable {
 
     public static final int MIN_REQUESTS = 3;
     public final int id;
-    private int[] maxRequests;
+    private int[] maximum;
     private Bank bank;
     private List<int[]> requests;  // List off requests that the thread will make
     private List<RequestStatus> status; // current status of each thread
@@ -25,7 +25,7 @@ public class Customer implements Runnable {
         this.bank = bank;
         this.requests = new LinkedList<int[]>();
         this.status = new LinkedList<RequestStatus>();
-        this.maxRequests = bank.getMaximum(this.id);
+        this.maximum = bank.getMaximum(this.id);
     }
 
     public void addRequest(int[] requests) {
@@ -33,24 +33,50 @@ public class Customer implements Runnable {
         this.status.add(RequestStatus.WAITING);
     }
 
-    public void newRandomRequests(int n) {
-        for (int i = 0; i < n; i += 1) {
-            int[] request = new int[this.bank.resourceCount];
+    public void newRandomRequests(int requestCount) {
+        int[][] request = new int[requestCount][this.maximum.length];
+        for (int i = 0; i < requestCount; i += 1) {
+            for (int j = 0; j < this.maximum.length; j += 1) {
+                request[i][j] = Util.randomIntRange(0, this.maximum[j]);
+            }
+        }
 
-            boolean allZero = true;
-            while (allZero)
-                for (int j = 0; j < this.bank.resourceCount; j += 1) {
-                    int rand = Util.randomIntRange(0, this.maxRequests[j]);
-                    int num = rand / n;
-                    if (n < Util.randomIntRange(0, n) * 10) {
-                        num += 1;
-                    }
-                    request[j] = num;
-                    if (num != 0) {
-                        allZero = false;
-                    }
+        for (int col = 0; col < this.maximum.length; col += 1) {
+            boolean done = false;
+            while (!done) {
+                int max = this.maximum[col];
+                if (max == 0) {
+                    break;
+                } else if (max <= requestCount) {
+                    max = requestCount;
                 }
-            this.addRequest(request);
+
+                int n = Util.randomIntRange(0, max / requestCount);
+                int row = Util.randomIntRange(0, requestCount - 1);
+                if (request[row][col] < n) {
+                    request[row][col] = 0;
+                } else {
+                    request[row][col] -= n;
+                }
+
+                int sum = 0;
+                for (int i = 0; i < requestCount; i += 1) {
+                    sum += request[i][col];
+                }
+
+                if (sum <= this.maximum[col]) {
+                    if (sum == 0) {
+                        n = Util.randomIntRange(0, this.maximum[col]);
+                        row = Util.randomIntRange(0, requestCount - 1);
+                        request[row][col] = n;
+                    }
+                    done = true;
+                }
+            }
+        }
+
+        for (int i = 0; i < requestCount; i += 1) {
+            this.addRequest(request[i]);
         }
     }
 
@@ -79,34 +105,23 @@ public class Customer implements Runnable {
                 int requestIndex = this.getUnfinishedRandomRequest();
                 this.handleTransact(requestIndex);
             } catch (InterruptedException e) {
-                System.out.println("Error " + e.getMessage());
+                Logger.log("Error " + e.getMessage());
                 e.printStackTrace();
             }
         }
+        String str = "Customer ";
+        str += String.valueOf(this.id);
+        str += " finished";
+        Logger.log(str);
     }
 
     private int getUnfinishedRandomRequest() {
-        int unfinished = 0;
         while (true) {
             int n = Util.randomIntRange(0, this.status.size() - 1);
             if (this.status.get(n) != RequestStatus.FINISHED) {
                 return n;
             }
         }
-        // for (int i = 0; i < this.status.size(); i += 1) {
-        //     if (this.status.get(i) != RequestStatus.FINISHED) {
-        //         unfinished += 1;
-        //     }
-        // }
-
-        // int index = 0;
-        // int begin = Util.randomIntRange(0, unfinished - 1);
-        // for (int i = begin; true; i += 1) {
-        //     index = i % this.status.size();
-        //     if (this.status.get(index) != RequestStatus.FINISHED) {
-        //         return index;
-        //     }
-        // }
     }
 
     private void handleTransact(int index) {
@@ -119,7 +134,7 @@ public class Customer implements Runnable {
             this.printRelease(this.id, index, request);
             this.handleRelease(index, request);
         } else {
-            System.out.println("This shouldn't happen");
+            Logger.log("This shouldn't happen");
         }
     }
 
@@ -139,7 +154,7 @@ public class Customer implements Runnable {
         str += String.valueOf(this.id);
         str += " requesting ";
         str += Util.stringify(request);
-        System.out.println(str);
+        Logger.log(str);
     }
 
     private void printRelease(int id, int index, int[] request) {
@@ -147,6 +162,6 @@ public class Customer implements Runnable {
         str += String.valueOf(this.id);
         str += " releasing ";
         str += Util.stringify(request);
-        System.out.println(str);
+        Logger.log(str);
     }
 }
