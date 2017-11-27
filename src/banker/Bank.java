@@ -16,14 +16,89 @@ public class Bank {
     private int[][] allocation;
     private int[][] need;
 
-    public Bank(int customerCount, int resourceCount) {
-        this.customerCount = customerCount;
-        this.resourceCount = resourceCount;
-        this.maxResources = this.initMaxResources(resourceCount);
-        this.resources = this.initResources(this.maxResources, resourceCount);
-        this.maximum = this.initMaximum(this.maxResources, customerCount, resourceCount);
+    public static class Builder {
+        private int resourceCount;
+        private int customerCount;
+        private int[] resources;
+        private int[][] maximum;
+
+        public Builder() {
+            this.customerCount = -1;
+            this.resourceCount = -1;
+        }
+
+        public Builder randomResources(int resourceCount) {
+            if (this.resourceCount < 0) {
+                this.resourceCount = resourceCount;
+            }
+
+            this.resources = new int[this.resourceCount];
+            for (int i = 0; i < this.resourceCount; i += 1) {
+                int n = Util.randomIntRange(Bank.MIN_RESOURCE, Bank.MAX_RESOURCE);
+                resources[i] = n;
+            }
+            return this;
+        }
+
+        public Builder resources(int[] resources) {
+            if (this.resourceCount < 0) {
+                this.resourceCount = resources.length;
+            }
+            this.resources = new int[this.resourceCount];
+            for (int i = 0; i < resources.length; i += 1) {
+                this.resources[i] = resources[i];
+            }
+            return this;
+        }
+
+        public Builder maximum(int[][] max) {
+            if (this.customerCount  < 0) {
+                this.customerCount = max.length;
+            }
+            if (this.resourceCount < 0) {
+                this.resourceCount = max[0].length;
+            }
+            this.maximum = new int[this.customerCount][this.resourceCount];
+            for (int row = 0; row < this.customerCount; row += 1) {
+                for (int col = 0; col < this.resourceCount; col += 1) {
+                    this.maximum[row][col] = max[row][col];
+                }
+            }
+            return this;
+        }
+
+        public Builder randomMaximum(int customerCount, int resourceCount) {
+            if (this.customerCount < 0) {
+                this.customerCount = customerCount;
+            }
+            if (this.resourceCount < 0) {
+                this.resourceCount = resourceCount;
+            }
+            this.maximum = new int[this.customerCount][this.resourceCount];
+            for (int row = 0; row < this.customerCount; row += 1) {
+                for (int col = 0; col < this.resourceCount; col += 1) {
+                    int count = this.resources[col];
+                    int n = Util.randomIntRange(Bank.MIN_RESOURCE, count);
+                    this.maximum[row][col] = n;
+                }
+            }
+            return this;
+        }
+
+        public Bank build() {
+            return new Bank(this);
+        }
+    }
+
+
+    private Bank(Builder builder) {
+        this.customerCount = builder.customerCount;
+        this.resourceCount = builder.resourceCount;
+        this.maxResources = builder.resources;
+        this.resources = this.initResources(this.maxResources);
+        this.maximum = builder.maximum;
         this.need = new int[this.customerCount][this.resourceCount];
-        this.allocation = this.initAllocation(customerCount, resourceCount);
+        this.allocation = new int[this.customerCount][this.resourceCount];
         this.printInital();
     }
 
@@ -153,41 +228,12 @@ public class Bank {
         }
     }
 
-    private int[] initMaxResources(int resourceCount) {
-        int[] resources = new int[resourceCount];
-        for (int i = 0; i < this.resourceCount; i += 1) {
-            int n = Util.randomIntRange(this.MIN_RESOURCE, this.MAX_RESOURCE);
-            resources[i] = n;
-        }
-        return resources;
-    }
-
-    private Semaphore[] initResources(int[] resources, int resourceCount) {
-        Semaphore[] res = new Semaphore[resourceCount];
-        for (int i = 0; i < resourceCount; i += 1) {
+    private Semaphore[] initResources(int[] resources) {
+        Semaphore[] res = new Semaphore[resources.length];
+        for (int i = 0; i < resources.length; i += 1) {
             res[i] = new Semaphore(resources[i]);
         }
         return res;
-    }
-
-    private int[][] initMaximum(int[] resources, int customerCount, int resourceCount) {
-        int[][] maximum = new int[customerCount][resourceCount];
-        for (int row = 0; row < customerCount; row += 1) {
-            for (int col = 0; col < resourceCount; col += 1) {
-                int count = resources[col];
-                int n = Util.randomIntRange(this.MIN_RESOURCE, count);
-                maximum[row][col] = n;
-            }
-        }
-        return maximum;
-    }
-
-    private int[][] initAllocation(int customerCount, int resourceCount) {
-        int[][] allocation = new int[customerCount][resourceCount];
-        for (int i = 0; i < this.customerCount; i += 1) {
-            allocation[i] = new int[resourceCount];
-        }
-        return allocation;
     }
 
     public synchronized void printResources() {
@@ -227,5 +273,4 @@ public class Bank {
         str += "]";
         return str;
     }
-
 }

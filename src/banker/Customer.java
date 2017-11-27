@@ -28,18 +28,20 @@ public class Customer implements Runnable {
         this.maxRequests = bank.getMaximum(this.id);
     }
 
-    public synchronized void newRequest(int[] requests) {
+    public synchronized void addRequest(int[] requests) {
         this.requests.add(requests);
         this.status.add(RequestStatus.WAITING);
         this.notify();
     }
 
-    public void newRandomRequest() {
-        int[] request = new int[this.bank.resourceCount];
-        for (int i = 0; i < this.bank.resourceCount; i += 1) {
-            request[i] = Util.randomIntRange(1, this.maxRequests[i] / 3 + 1);
+    public void newRandomRequests(int n) {
+        for (int i = 0; i < n; i += 1) {
+            int[] request = new int[this.bank.resourceCount];
+            for (int j = 0; j < this.bank.resourceCount; j += 1) {
+                request[j] = Util.randomIntRange(1, this.maxRequests[j] / 3 + 1);
+            }
+            this.addRequest(request);
         }
-        this.newRequest(request);
     }
 
     private boolean hasUnfinishedRequest() {
@@ -58,7 +60,6 @@ public class Customer implements Runnable {
 
     public void run() {
         boolean hasUnfinished = this.hasUnfinishedRequest();
-        boolean belowMin = this.status.size() < this.MIN_REQUESTS;
         while (!this.isFinished()) {
             try {
                 Thread.sleep(100 * Util.randomIntRange(10, 50));
