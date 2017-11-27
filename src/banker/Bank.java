@@ -1,7 +1,6 @@
 package banker;
 
 import java.util.*;
-import java.util.concurrent.*;
 import banker.errors.*;
 
 
@@ -10,11 +9,10 @@ public class Bank {
     public static final int MIN_RESOURCE = 1;
     public final int resourceCount;
     public final int customerCount;
-    public final Semaphore[] resources;
+    private final int[] resources;
     private final int[] maxResources;
     private final int[][] maximum;
     private int[][] allocation;
-    private int[][] need;
 
     public static class Builder {
         private int resourceCount;
@@ -97,7 +95,6 @@ public class Bank {
         this.maxResources = builder.resources;
         this.resources = this.initResources(this.maxResources);
         this.maximum = builder.maximum;
-        this.need = new int[this.customerCount][this.resourceCount];
         this.allocation = new int[this.customerCount][this.resourceCount];
         this.printInital();
     }
@@ -118,10 +115,17 @@ public class Bank {
     }
 
     public boolean request(Customer customer, int id, int[] request) {
-        if(!this.isSafe(request)) {
+        String ss = String.valueOf(customer.id);
+        ss += " ";
+        ss += String.valueOf(id);
+        System.out.println(ss + " starting");
+
+        if (!this.isSafe(request)) {
             System.out.println("Bank: Not safe");
             return false;
         }
+
+        System.out.println(ss + " Finishing");
 
         this.addToAllocationMatrix(customer.id, request);
         {  // print request granted
@@ -134,22 +138,42 @@ public class Bank {
         }
         this.printAllocationMatrix();
 
+        this.allocateRequest(request);
+
         this.printResources();
         return true;
     }
 
-    public void release(Customer customer, int id, int[] request) {
-        this.removeFromAllocation(customer.id, request);
-        this.printAllocationMatrix();
+    private synchronized void allocateRequest(int[] request) {
+        for (int i = 0; i < this.resourceCount;) {
+            if (this.resources[i] < request[i]) {
+                try {
+                    this.wait();
+                } catch (InterruptedException e) {
+                    System.out.println("Error " + e.getMessage());
+                    e.printStackTrace();
+                }
+                continue;
+            }
+            this.resources[i] -= request[i];
+            i += 1;
+        }
     }
 
-    public synchronized boolean isSafe(int[] request) {
-        this.updateNeed();
-
-        int[] avail = new int[this.resourceCount];
+    public synchronized void release(Customer customer, int id, int[] request) {
+        this.removeFromAllocation(customer.id, request);
+        this.printAllocationMatrix();
         for (int i = 0; i < this.resourceCount; i += 1) {
-            avail[i] = this.resources[i].availablePermits();
+            this.resources[i] += request[i];
         }
+        this.notify();
+        this.printResources();
+    }
+
+    public boolean isSafe(int[] request) {
+        int[] avail = this.copyResources();
+        int[][] allocation = this.copyAllocation();
+        int[][] need = this.calcNeed(allocation);
 
         boolean[] running = new boolean[this.customerCount];
         for (int i = 0; i < this.customerCount; i += 1) {
@@ -162,7 +186,7 @@ public class Bank {
                 if (running[customer]) {
                     boolean flag = true;
                     for (int r = 0; r < this.resourceCount; r += 1) {
-                        int resource = avail[r] - this.need[customer][r];
+                        int resource = avail[r] - need[customer][r];
                         if (resource < 0) {
                             flag = false;
                         }
@@ -172,7 +196,7 @@ public class Bank {
                         running[customer] = false;
                         atLeastOneAllocated = true;
                         for (int i = 0; i < this.resourceCount; i += 1) {
-                            avail[i] += this.allocation[customer][i];
+                            avail[i] += allocation[customer][i];
                         }
                     }
                 }
@@ -195,25 +219,34 @@ public class Bank {
         return count;
     }
 
-    private void updateNeed() {
+    private int[][] calcNeed(int[][] allocation) {
+        int[][] need = new int[this.customerCount][this.resourceCount];
         for (int row = 0; row < this.customerCount; row += 1) {
             for (int col = 0; col < this.resourceCount; col += 1) {
                 int max = this.maximum[row][col];
-                int alloc = this.allocation[row][col];
-                this.need[row][col] = max - alloc;
+                int alloc = allocation[row][col];
+                need[row][col] = max - alloc;
             }
         }
+        return need;
     }
 
-    private void allocateResources(int[] request) {
-        for (int i = 0; i < this.resources.length; i += 1) {
-            try {
-                this.resources[i].acquire(request[i]);
-            } catch (InterruptedException e) {
-                System.out.println("Error " + e.getMessage());
-                e.printStackTrace();
+    private synchronized int[][] copyAllocation() {
+        int[][] alloc = new int[this.customerCount][this.resourceCount];
+        for (int row = 0; row < this.customerCount; row += 1) {
+            for (int col = 0; col < this.resourceCount; col += 1) {
+                alloc[row][col] = this.allocation[row][col];
             }
         }
+        return alloc;
+    }
+
+    private synchronized int[] copyResources() {
+        int[] resources = new int[this.resourceCount];
+        for (int r = 0; r < this.customerCount; r += 1) {
+            resources[r] = this.resources[r];
+        }
+        return resources;
     }
 
     private synchronized void addToAllocationMatrix(int row, int[] values) {
@@ -228,17 +261,17 @@ public class Bank {
         }
     }
 
-    private Semaphore[] initResources(int[] resources) {
-        Semaphore[] res = new Semaphore[resources.length];
+    private int[] initResources(int[] resources) {
+        int[] res = new int[resources.length];
         for (int i = 0; i < resources.length; i += 1) {
-            res[i] = new Semaphore(resources[i]);
+            res[i] = resources[i];
         }
         return res;
     }
 
     public synchronized void printResources() {
         String str = "Available Resources: ";
-        str += this.stringifiedResources();
+        str += Util.stringify(this.resources);
         System.out.println(str);
     }
 
@@ -264,7 +297,7 @@ public class Bank {
     private String stringifiedResources() {
         String str = "[";
         for (int col = 0; col < this.resourceCount; col += 1) {
-            int count = this.resources[col].availablePermits();
+            int count = this.resources[col];
             str += String.valueOf(count);
             if (col < this.resources.length - 1) {
                 str += ", ";

@@ -28,17 +28,19 @@ public class Customer implements Runnable {
         this.maxRequests = bank.getMaximum(this.id);
     }
 
-    public synchronized void addRequest(int[] requests) {
+    public void addRequest(int[] requests) {
         this.requests.add(requests);
         this.status.add(RequestStatus.WAITING);
-        this.notify();
     }
 
     public void newRandomRequests(int n) {
         for (int i = 0; i < n; i += 1) {
             int[] request = new int[this.bank.resourceCount];
             for (int j = 0; j < this.bank.resourceCount; j += 1) {
-                request[j] = Util.randomIntRange(1, this.maxRequests[j] / 3 + 1);
+                int min = Util.randomIntRange(0, this.maxRequests[j] / 2);
+                min = Util.randomIntRange(min, this.maxRequests[j] / 2);
+                int rand = Util.randomIntRange(min, this.maxRequests[j]);
+                request[j] = (rand / n);
             }
             this.addRequest(request);
         }
@@ -62,7 +64,8 @@ public class Customer implements Runnable {
         boolean hasUnfinished = this.hasUnfinishedRequest();
         while (!this.isFinished()) {
             try {
-                Thread.sleep(100 * Util.randomIntRange(10, 50));
+                int duration = Util.randomIntRange(1000, 5000);
+                Thread.sleep(duration);
                 int requestIndex = this.getUnfinishedRandomRequest();
                 this.handleTransact(requestIndex);
             } catch (InterruptedException e) {
@@ -73,33 +76,20 @@ public class Customer implements Runnable {
         }
     }
 
-    private synchronized int getUnfinishedRandomRequest() {
-        if (this.finished == this.status.size()) {
-            try {
-                this.wait();
-            }
-            catch (InterruptedException e) {
-                System.out.println("Error " + e.getMessage());
-                e.printStackTrace();
+    private int getUnfinishedRandomRequest() {
+        int unfinished = 0;
+        for (int i = 0; i < this.status.size(); i += 1) {
+            if (this.status.get(i) != RequestStatus.FINISHED) {
+                unfinished += 1;
             }
         }
 
-        // Random doesn't seem random;
-        {
-            int unfinished = 0;
-            for (int i = 0; i < this.status.size(); i += 1) {
-                if (this.status.get(i) != RequestStatus.FINISHED) {
-                    unfinished += 1;
-                }
-            }
-
-            int index = 0;
-            int begin = Util.randomIntRange(0, unfinished - 1);
-            for (int i = begin; true; i += 1) {
-                index = i % this.status.size();
-                if (this.status.get(index) != RequestStatus.FINISHED) {
-                    return index;
-                }
+        int index = 0;
+        int begin = Util.randomIntRange(0, unfinished - 1);
+        for (int i = begin; true; i += 1) {
+            index = i % this.status.size();
+            if (this.status.get(index) != RequestStatus.FINISHED) {
+                return index;
             }
         }
     }
@@ -118,33 +108,15 @@ public class Customer implements Runnable {
         }
     }
 
-    private  void handleRequest(int index, int[] request) {
+    private void handleRequest(int index, int[] request) {
         if (this.bank.request(this, index, request)) {
-            for (int i = 0; i < this.bank.resources.length; i += 1) {
-                try {
-                    this.bank.resources[i].acquire(request[i]);
-                } catch (InterruptedException e) {
-                    System.out.println("Error " + e.getMessage());
-                    e.printStackTrace();
-                }
-            }
             this.status.set(index, RequestStatus.PENDING);
-            this.bank.printResources();
-            System.out.println();
         }
     }
 
     private void handleRelease(int index, int[] request) {
         this.bank.release(this, index, request);
         this.status.set(index, RequestStatus.FINISHED);
-        this.finished += 1;
-
-        for (int i = 0; i < this.bank.resources.length; i += 1) {
-            this.bank.resources[i].release(request[i]);
-        }
-        this.bank.printResources();
-        System.out.println();
-
     }
 
     private void printRequest(int id, int index, int[] request) {

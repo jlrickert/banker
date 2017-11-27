@@ -1,7 +1,6 @@
 package banker;
 
 import java.math.*;
-import java.util.concurrent.*;
 
 public class Util {
     public static int randomIntRange(int minimum, int maximum) {
