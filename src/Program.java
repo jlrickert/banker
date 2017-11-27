@@ -45,13 +45,13 @@ public class Program {
     }
 
     /**
-     * Constructs a program from arguments given by the os.
+     * Constructs a program from arguments given by the os. where both arguments
+     * must be between 1 and 10.
      *
+     * @throws ParseErr  thrown when item cannot be identified as an integer
+     * @throws MissingArgErr thrown when missing a required argument
+     * @throws InvalidArgumentErr thrown number is outside of the specified range
      * @param args raw arguments given by the OS.
-     * @ throws
-     * throws ParseErr
-     * throws MissingArgErr
-     * throws InvalidArgumentErr
      */
     public Program(String args[]) throws ParseErr, MissingArgErr, InvalidArgumentErr {
         this.parseArguments(args);

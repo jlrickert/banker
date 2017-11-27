@@ -112,6 +112,8 @@ public class Customer implements Runnable {
 
     /**
      * Test if the customer has any unfinished requests
+     *
+     * @return true if closed and has an unfinished request
      */
     public boolean isFinished() {
         return this.closed && this.finished == this.status.size();

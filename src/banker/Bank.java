@@ -55,6 +55,8 @@ public class Bank {
          *
          * @param resourceCount the number of different resource types that a
          * customer could potentially request.
+         *
+         * @return Builder returns itself
          */
         public Builder randomResources(int resourceCount) {
             if (this.resourceCount < 0) {
@@ -74,6 +76,8 @@ public class Bank {
          *
          * @param resources an array of numbers where each element is the number
          * of available resources corresponding to each type.
+         *
+         * @return Builder returns itself
          */
         public Builder resources(int[] resources) {
             if (this.resourceCount < 0) {
@@ -92,8 +96,10 @@ public class Bank {
          * Also assumes that each cell is less than or equal to its associated
          * resource type.
          *
-         * @param resources an array of numbers where each element is the number
-         * of available resources corresponding to each type.
+         * @param max  an array of numbers where each element is the number
+         *             of available resources corresponding to each type.
+         *
+         * @return Builder returns itself
          */
         public Builder maximum(int[][] max) {
             if (this.customerCount  < 0) {
@@ -119,6 +125,8 @@ public class Bank {
          *
          * @param customerCount the number of customers
          * @param resourceCount the number of resource types
+         *
+         * @return Builder returns itself
          */
         public Builder randomMaximum(int customerCount, int resourceCount) {
             if (this.customerCount < 0) {
@@ -141,6 +149,8 @@ public class Bank {
         /**
          * Finalized building the bank. This assumes that methods have been
          * called in the correct order have been called.
+         *
+         * @return Builder returns itself
          */
         public Bank build() {
             return new Bank(this);
@@ -174,7 +184,7 @@ public class Bank {
      * Prints the available resources and maximum for each customer to screen.
      */
     public void printInital() {
-        Logger.log("Bank: Initial Resources Available:");
+        Util.log("Bank: Initial Resources Available:");
         this.printResources();
         this.printMaximum();
     }
@@ -191,7 +201,7 @@ public class Bank {
      */
     public synchronized boolean request(Customer customer, int id, int[] request) {
         if (!this.isSafe(request)) {
-            Logger.log("Bank: Not safe");
+            Util.log("Bank: Not safe");
             return false;
         }
 
@@ -202,7 +212,7 @@ public class Bank {
             str += " request ";
             str += String.valueOf(id);
             str += " granted";
-            Logger.log(str);
+            Util.log(str);
         }
         this.printAllocationMatrix();
         this.allocateRequest(customer, id, request);
@@ -213,14 +223,14 @@ public class Bank {
         String customerId = String.valueOf(customer.id);
         String str = "Allocating for customer ";
         str += String.valueOf(customer.id);
-        Logger.log("Customer "+customerId+" allocating resources");
+        Util.log("Customer "+customerId+" allocating resources");
         for (int i = 0; i < this.resourceCount;) {
             if (this.resources[i] < request[i]) {
                 try {
                     this.wait();
                     System.out.println("Customer "+customerId+" Waiting");
                 } catch (InterruptedException e) {
-                    Logger.log("Error " + e.getMessage());
+                    Util.log("Error " + e.getMessage());
                     e.printStackTrace();
                 }
                 continue;
@@ -228,7 +238,7 @@ public class Bank {
             this.resources[i] -= request[i];
             i += 1;
         }
-        Logger.log("Customer "+customerId+" allocating finished");
+        Util.log("Customer "+customerId+" allocating finished");
 
         this.printResources();
     }
@@ -350,7 +360,7 @@ public class Bank {
     public synchronized void printResources() {
         String str = "Available Resources: ";
         str += Util.stringify(this.resources);
-        Logger.log(str);
+        Util.log(str);
     }
 
     /*
@@ -358,11 +368,11 @@ public class Bank {
      * to standard out.
      */
     public synchronized void printMaximum() {
-        Logger.log("Bank - Max");
+        Util.log("Bank - Max");
         for (int row = 0; row < this.customerCount; row += 1) {
             String str = "\t";
             str += Util.stringify(this.maximum[row]);
-            Logger.log(str);
+            Util.log(str);
         }
     }
 
@@ -370,11 +380,11 @@ public class Bank {
      * prints out a matrix of that each customer has requested to standard out.
      */
     public synchronized void printAllocationMatrix() {
-        Logger.log("Bank - Allocation: ");
+        Util.log("Bank - Allocation: ");
         for (int row = 0; row < this.customerCount; row += 1) {
             String str = "\t";
             str += Util.stringify(this.allocation[row]);
-            Logger.log(str);
+            Util.log(str);
         }
     }
 

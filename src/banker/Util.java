@@ -19,12 +19,15 @@ public class Util {
 
     /**
      * Returns a string representation of an array of integers
+     *
+     * @param array  array of integers
+     * @return string representation of array
      */
-    public static String stringify(int[] xs) {
+    public static String stringify(int[] array) {
         String str = "[";
-        for (int i = 0; i < xs.length; i += 1) {
-            str += xs[i];
-            if (i < xs.length - 1) {
+        for (int i = 0; i < array.length; i += 1) {
+            str += array[i];
+            if (i < array.length - 1) {
                 str += ", ";
             }
         }
@@ -34,6 +37,8 @@ public class Util {
 
     /**
      * Log output to the screen
+     *
+     * @param msg  message to be printed to screen
      */
     public synchronized static void log(String msg) {
         System.out.println(msg);
