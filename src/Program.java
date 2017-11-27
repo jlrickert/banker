@@ -4,7 +4,7 @@ import banker.errors.*;
 import java.util.*;
 import java.io.*;
 
-class Program {
+public class Program {
     private int resourceCount;
     private int customerCount;
 
@@ -16,11 +16,15 @@ class Program {
             Program prog = new Program(args);
             prog.start();
         } catch (MissingArgErr e) {
-            System.out.println("Error " + e.getMessage());
+            System.out.println("Error: " + e.getMessage());
             Program.printHelp();
             System.exit(0);
         } catch (ParseErr e) {
-            System.out.println("Error " + e.getMessage());
+            System.out.println("Error: " + e.getMessage());
+            Program.printHelp();
+            System.exit(0);
+        } catch (InvalidArgumentErr e) {
+            System.out.println("Error: " + e.getMessage());
             Program.printHelp();
             System.exit(0);
         }
@@ -28,15 +32,19 @@ class Program {
 
     // prints the help message to standard output
     public static void printHelp() {
-        System.out.println("wassup");
+        String programName = "banker";
+        String str = "";
+        str += "Usage: " + programName;
+        str += " resources customers";
+        System.out.println(str);
     }
 
-    public Program(String args[]) throws ParseErr, MissingArgErr {
+    public Program(String args[]) throws ParseErr, MissingArgErr, InvalidArgumentErr {
         this.parseArguments(args);
-        this.manualInit();  // this is temporary
-        // this.initCustomers(this.bank);
-        // this.initBank();
-        // this.initRandomCustomers();
+        // this.manualInit();  // this is temporary
+        this.bank = this.initBank();
+        this.initCustomers(this.bank);
+        this.initRandomCustomers();
     }
 
     public void start() {
@@ -64,16 +72,37 @@ class Program {
     }
 
     // maybe throw error on problem
-    private void parseArguments(String args[]) throws ParseErr, MissingArgErr {
-        this.resourceCount = Integer.valueOf(args[0]);
-        this.customerCount = Integer.valueOf(args[1]);
+    private void parseArguments(String args[]) throws ParseErr, MissingArgErr, InvalidArgumentErr {
+        if (args.length < 2) {
+            throw new MissingArgErr();
+        }
+        try {
+            this.resourceCount = Integer.valueOf(args[0]);
+            int min = Bank.MIN_RESOURCE;
+            int max = Bank.MAX_RESOURCE;
+            if (this.resourceCount < min ||
+                this.resourceCount > max) {
+                String low = String.valueOf(min);
+                String high = String.valueOf(max);
+                throw new InvalidArgumentErr(args[0] + " needs to be between " + low + " and " + high);
+            }
+        } catch (NumberFormatException e) {
+            throw new ParseErr(args[0] + " is not a valid number of resources");
+        }
+
+        try {
+            this.customerCount = Integer.valueOf(args[1]);
+        } catch (NumberFormatException e) {
+            throw new ParseErr(args[1] + " is not a valid number of customers");
+        }
     }
 
-    private void initBank() {
-        this.bank = new Bank.Builder()
+    private Bank initBank() {
+        Bank bank = new Bank.Builder()
             .randomResources(this.resourceCount)
             .randomMaximum(this.customerCount, this.resourceCount)
             .build();
+        return bank;
     }
 
     private void initCustomers(Bank bank) {
@@ -82,6 +111,7 @@ class Program {
             this.customers[i] = new Customer(i, bank);
         }
     }
+
     private void manualInit() {
         int[][] max = new int[this.customerCount][this.resourceCount];
         max[0][0]= 7; max[0][1]= 5; max[0][2]= 3;
@@ -90,8 +120,10 @@ class Program {
         max[3][0]= 2; max[3][1]= 2; max[3][2]= 2;
         max[4][0]= 4; max[4][1]= 3; max[4][2]= 3;
 
+        int[] resources = new int[3];
+        resources[0] = 10; resources[1] = 5; resources[2] = 7;
         this.bank = new Bank.Builder()
-            .randomResources(this.resourceCount)
+            .resources(resources)
             .maximum(max)
             .build();
 
