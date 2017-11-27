@@ -116,15 +116,29 @@ public class Customer implements Runnable {
     }
 
     private int getUnfinishedRandomRequest() {
-        while (true) {
+        int count = 0;
+        while (count < this.status.size()) {
             int n = Util.randomIntRange(0, this.status.size() - 1);
             if (this.status.get(n) != RequestStatus.FINISHED) {
                 return n;
             }
+            count += 1;
         }
+
+        for (int i = 0; i < this.status.size() - 1; i += 1) {
+            if (this.status.get(i) != RequestStatus.FINISHED) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private void handleTransact(int index) {
+        if (index < 0) {
+            System.out.print("WTF RARE CONDITION ");
+            System.out.println(this.hasUnfinishedRequest());
+            return;
+        }
         RequestStatus status = this.status.get(index);
         int[] request = this.requests.get(index);
         if (status == RequestStatus.WAITING) {
