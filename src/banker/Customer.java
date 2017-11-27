@@ -125,7 +125,7 @@ public class Customer implements Runnable {
             count += 1;
         }
 
-        for (int i = 0; i < this.status.size() - 1; i += 1) {
+        for (int i = 0; i < this.status.size(); i += 1) {
             if (this.status.get(i) != RequestStatus.FINISHED) {
                 return i;
             }
@@ -135,7 +135,7 @@ public class Customer implements Runnable {
 
     private void handleTransact(int index) {
         if (index < 0) {
-            System.out.print("WTF RARE CONDITION ");
+            System.out.print("THIS SHOULD NOT HAPPEND");
             System.out.println(this.hasUnfinishedRequest());
             return;
         }

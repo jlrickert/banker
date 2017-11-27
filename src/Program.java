@@ -16,15 +16,15 @@ public class Program {
             Program prog = new Program(args);
             prog.start();
         } catch (MissingArgErr e) {
-            System.out.println("Error: " + e.getMessage());
+            Logger.log("Error: " + e.getMessage());
             Program.printHelp();
             System.exit(0);
         } catch (ParseErr e) {
-            System.out.println("Error: " + e.getMessage());
+            Logger.log("Error: " + e.getMessage());
             Program.printHelp();
             System.exit(0);
         } catch (InvalidArgumentErr e) {
-            System.out.println("Error: " + e.getMessage());
+            Logger.log("Error: " + e.getMessage());
             Program.printHelp();
             System.exit(0);
         }
@@ -36,7 +36,7 @@ public class Program {
         String str = "";
         str += "Usage: " + programName;
         str += " resources customers";
-        System.out.println(str);
+        Logger.log(str);
     }
 
     public Program(String args[]) throws ParseErr, MissingArgErr, InvalidArgumentErr {

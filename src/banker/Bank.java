@@ -113,7 +113,6 @@ public class Bank {
         Logger.log("Bank: Initial Resources Available:");
         this.printResources();
         this.printMaximum();
-        Logger.log("");
     }
 
     public synchronized boolean request(Customer customer, int id, int[] request) {
@@ -132,17 +131,20 @@ public class Bank {
             Logger.log(str);
         }
         this.printAllocationMatrix();
-        this.allocateRequest(request);
-        this.printResources();
-        Logger.log("");
+        this.allocateRequest(customer, id, request);
         return true;
     }
 
-    private synchronized void allocateRequest(int[] request) {
+    private synchronized void allocateRequest(Customer customer, int id, int[] request) {
+        String customerId = String.valueOf(customer.id);
+        String str = "Allocating for customer ";
+        str += String.valueOf(customer.id);
+        Logger.log("Customer "+customerId+" allocating resources");
         for (int i = 0; i < this.resourceCount;) {
             if (this.resources[i] < request[i]) {
                 try {
                     this.wait();
+                    System.out.println("Customer "+customerId+" Waiting");
                 } catch (InterruptedException e) {
                     Logger.log("Error " + e.getMessage());
                     e.printStackTrace();
@@ -152,6 +154,9 @@ public class Bank {
             this.resources[i] -= request[i];
             i += 1;
         }
+        Logger.log("Customer "+customerId+" allocating finished");
+
+        this.printResources();
     }
 
     public synchronized void release(Customer customer, int id, int[] request) {
@@ -160,8 +165,8 @@ public class Bank {
         for (int i = 0; i < this.resourceCount; i += 1) {
             this.resources[i] += request[i];
         }
-        this.notify();
         this.printResources();
+        this.notify();
     }
 
     public boolean isSafe(int[] request) {
@@ -280,7 +285,6 @@ public class Bank {
             str += Util.stringify(this.allocation[row]);
             Logger.log(str);
         }
-        Logger.log("");
     }
 
     private String stringifiedResources() {
