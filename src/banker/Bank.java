@@ -13,6 +13,7 @@ public class Bank {
     private final int[] maxResources;
     private final int[][] maximum;
     private int[][] allocation;
+    private int[][] need;
 
     public static class Builder {
         private int resourceCount;
@@ -96,6 +97,7 @@ public class Bank {
         this.resources = this.initResources(this.maxResources);
         this.maximum = builder.maximum;
         this.allocation = new int[this.customerCount][this.resourceCount];
+        this.need = new int[this.customerCount][this.resourceCount];
         this.printInital();
     }
 
@@ -115,17 +117,10 @@ public class Bank {
     }
 
     public boolean request(Customer customer, int id, int[] request) {
-        String ss = String.valueOf(customer.id);
-        ss += " ";
-        ss += String.valueOf(id);
-        System.out.println(ss + " starting");
-
         if (!this.isSafe(request)) {
             System.out.println("Bank: Not safe");
             return false;
         }
-
-        System.out.println(ss + " Finishing");
 
         this.addToAllocationMatrix(customer.id, request);
         {  // print request granted
@@ -170,10 +165,9 @@ public class Bank {
         this.printResources();
     }
 
-    public boolean isSafe(int[] request) {
+    public synchronized boolean isSafe(int[] request) {
+        this.updateNeed();
         int[] avail = this.copyResources();
-        int[][] allocation = this.copyAllocation();
-        int[][] need = this.calcNeed(allocation);
 
         boolean[] running = new boolean[this.customerCount];
         for (int i = 0; i < this.customerCount; i += 1) {
@@ -196,7 +190,7 @@ public class Bank {
                         running[customer] = false;
                         atLeastOneAllocated = true;
                         for (int i = 0; i < this.resourceCount; i += 1) {
-                            avail[i] += allocation[customer][i];
+                            avail[i] += this.allocation[customer][i];
                         }
                     }
                 }
@@ -219,34 +213,22 @@ public class Bank {
         return count;
     }
 
-    private int[][] calcNeed(int[][] allocation) {
-        int[][] need = new int[this.customerCount][this.resourceCount];
+    private int[] copyResources() {
+        int[] resources = new int[this.resourceCount];
+        for (int i = 0; i < this.resourceCount; i += 1) {
+            resources[i] = this.resources[i];
+        }
+        return resources;
+    }
+
+    private void updateNeed() {
         for (int row = 0; row < this.customerCount; row += 1) {
             for (int col = 0; col < this.resourceCount; col += 1) {
                 int max = this.maximum[row][col];
-                int alloc = allocation[row][col];
-                need[row][col] = max - alloc;
+                int alloc = this.allocation[row][col];
+                this.need[row][col] = max - alloc;
             }
         }
-        return need;
-    }
-
-    private synchronized int[][] copyAllocation() {
-        int[][] alloc = new int[this.customerCount][this.resourceCount];
-        for (int row = 0; row < this.customerCount; row += 1) {
-            for (int col = 0; col < this.resourceCount; col += 1) {
-                alloc[row][col] = this.allocation[row][col];
-            }
-        }
-        return alloc;
-    }
-
-    private synchronized int[] copyResources() {
-        int[] resources = new int[this.resourceCount];
-        for (int r = 0; r < this.customerCount; r += 1) {
-            resources[r] = this.resources[r];
-        }
-        return resources;
     }
 
     private synchronized void addToAllocationMatrix(int row, int[] values) {

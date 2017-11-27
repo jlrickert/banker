@@ -36,12 +36,20 @@ public class Customer implements Runnable {
     public void newRandomRequests(int n) {
         for (int i = 0; i < n; i += 1) {
             int[] request = new int[this.bank.resourceCount];
-            for (int j = 0; j < this.bank.resourceCount; j += 1) {
-                int min = Util.randomIntRange(0, this.maxRequests[j] / 2);
-                min = Util.randomIntRange(min, this.maxRequests[j] / 2);
-                int rand = Util.randomIntRange(min, this.maxRequests[j]);
-                request[j] = (rand / n);
-            }
+
+            boolean allZero = true;
+            while (allZero)
+                for (int j = 0; j < this.bank.resourceCount; j += 1) {
+                    int rand = Util.randomIntRange(0, this.maxRequests[j]);
+                    int num = rand / n;
+                    if (n < Util.randomIntRange(0, n) * 10) {
+                        num += 1;
+                    }
+                    request[j] = num;
+                    if (num != 0) {
+                        allZero = false;
+                    }
+                }
             this.addRequest(request);
         }
     }
@@ -56,13 +64,15 @@ public class Customer implements Runnable {
         return this.closed && this.finished == this.status.size();
     }
 
-    public synchronized void close() {
+    public void close() {
         this.closed = true;
     }
 
     public void run() {
-        boolean hasUnfinished = this.hasUnfinishedRequest();
-        while (!this.isFinished()) {
+        while (!this.closed) {
+            Thread.yield();
+        }
+        while (this.hasUnfinishedRequest()) {
             try {
                 int duration = Util.randomIntRange(1000, 5000);
                 Thread.sleep(duration);
@@ -72,26 +82,31 @@ public class Customer implements Runnable {
                 System.out.println("Error " + e.getMessage());
                 e.printStackTrace();
             }
-            hasUnfinished = this.hasUnfinishedRequest();
         }
     }
 
     private int getUnfinishedRandomRequest() {
         int unfinished = 0;
-        for (int i = 0; i < this.status.size(); i += 1) {
-            if (this.status.get(i) != RequestStatus.FINISHED) {
-                unfinished += 1;
+        while (true) {
+            int n = Util.randomIntRange(0, this.status.size() - 1);
+            if (this.status.get(n) != RequestStatus.FINISHED) {
+                return n;
             }
         }
+        // for (int i = 0; i < this.status.size(); i += 1) {
+        //     if (this.status.get(i) != RequestStatus.FINISHED) {
+        //         unfinished += 1;
+        //     }
+        // }
 
-        int index = 0;
-        int begin = Util.randomIntRange(0, unfinished - 1);
-        for (int i = begin; true; i += 1) {
-            index = i % this.status.size();
-            if (this.status.get(index) != RequestStatus.FINISHED) {
-                return index;
-            }
-        }
+        // int index = 0;
+        // int begin = Util.randomIntRange(0, unfinished - 1);
+        // for (int i = begin; true; i += 1) {
+        //     index = i % this.status.size();
+        //     if (this.status.get(index) != RequestStatus.FINISHED) {
+        //         return index;
+        //     }
+        // }
     }
 
     private void handleTransact(int index) {

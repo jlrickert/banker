@@ -106,10 +106,9 @@ public class Program {
         for (int i = 0; i < this.customerCount; i += 1) {
             this.customers[i] = new Customer(i, bank);
             int n = Util.randomIntRange(Customer.MIN_REQUESTS, 5);
-            this.customers[i].newRandomRequests(3);
+
+            this.customers[i].newRandomRequests(n);
             this.customers[i].close();
-        }
-        for (int i = 0; i < this.customerCount; i += 1) {
         }
     }
 }
