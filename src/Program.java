@@ -4,6 +4,9 @@ import banker.errors.*;
 import java.util.*;
 import java.io.*;
 
+/**
+ * Main executable that setups up all components of the program
+ */
 public class Program {
     private int resourceCount;
     private int customerCount;
@@ -30,7 +33,9 @@ public class Program {
         }
     }
 
-    // prints the help message to standard output
+    /**
+     * Prints out a help menu on basic usage of the program.
+     */
     public static void printHelp() {
         String programName = "banker";
         String str = "";
@@ -39,12 +44,24 @@ public class Program {
         Logger.log(str);
     }
 
+    /**
+     * Constructs a program from arguments given by the os.
+     *
+     * @param args raw arguments given by the OS.
+     * @ throws
+     * throws ParseErr
+     * throws MissingArgErr
+     * throws InvalidArgumentErr
+     */
     public Program(String args[]) throws ParseErr, MissingArgErr, InvalidArgumentErr {
         this.parseArguments(args);
         this.bank = this.initBank();
         this.initCustomers(this.bank);
     }
 
+    /**
+     * Starts the program with the initialized parameters
+     */
     public void start() {
         Thread[] pids = new Thread[this.customerCount];
 
@@ -67,7 +84,14 @@ public class Program {
         }
     }
 
-    // maybe throw error on problem
+    /**
+     * takes the given arguments for the OS and sets the appropriate attributes.
+     * Throws errors if anything is invalid or missing a required parameter.
+     *
+     * @throws ParseErr
+     * @throws MissingArgErr
+     * @throws InvalidArgumentErr
+     */
     private void parseArguments(String args[]) throws ParseErr, MissingArgErr, InvalidArgumentErr {
         if (args.length < 2) {
             throw new MissingArgErr();

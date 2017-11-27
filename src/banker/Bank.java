@@ -4,6 +4,14 @@ import java.util.*;
 import banker.errors.*;
 
 
+/**
+ * Bank handles managing how resources are allocated and determines if it is
+ * safe to do so. The bank is initialized with a preset amount of resources and
+ * with a set of the maximum that each customer will ever request. As requests
+ * comes each one is checked against the available resources, the maximum that
+ * each customer could potentially request, and how many resources each customer
+ * currently has. This is essentially the bankers algorithm.
+ */
 public class Bank {
     public static final int MAX_RESOURCE = 10;
     public static final int MIN_RESOURCE = 1;
@@ -15,6 +23,21 @@ public class Bank {
     private int[][] allocation;
     private int[][] need;
 
+    /**
+     * Build manages constructing the bank. It requires that a set of methods
+     * are called in the correct order.
+     *
+     * The first requirement is that either <b>randomResources</b> or
+     * <b>resources</b> is called first. Where <b>randomResources</b> auto
+     * generates a set for you while <b>resources</b> is the resources to be
+     * manually set. This is mutually exclusive.
+     *
+     * The second member that needs to be called is either <b>randomMaximum</b>
+     * or <b>maximum</b>. Where <b>randomMaximum</b> auto generates a valid set
+     * for where the maximum for a customer cannot exceed the resources set from
+     * the previously called method. while <b>maximum</b> is the resources to be
+     * manually set. This is mutually exclusive.
+     */
     public static class Builder {
         private int resourceCount;
         private int customerCount;
@@ -26,6 +49,13 @@ public class Bank {
             this.resourceCount = -1;
         }
 
+        /**
+         * Sets the resources to n random values between <b>Bank.MIN_RESOURCE</b>
+         * and <b>Bank.MAX_RESOURCE</b>.
+         *
+         * @param resourceCount the number of different resource types that a
+         * customer could potentially request.
+         */
         public Builder randomResources(int resourceCount) {
             if (this.resourceCount < 0) {
                 this.resourceCount = resourceCount;
@@ -39,6 +69,12 @@ public class Bank {
             return this;
         }
 
+        /**
+         * Manually set the resources.
+         *
+         * @param resources an array of numbers where each element is the number
+         * of available resources corresponding to each type.
+         */
         public Builder resources(int[] resources) {
             if (this.resourceCount < 0) {
                 this.resourceCount = resources.length;
@@ -50,6 +86,15 @@ public class Bank {
             return this;
         }
 
+        /**
+         * Manually set the maximum. This assumes that maximum has the correct
+         * dimensions that aligns up with the number of customers and resources.
+         * Also assumes that each cell is less than or equal to its associated
+         * resource type.
+         *
+         * @param resources an array of numbers where each element is the number
+         * of available resources corresponding to each type.
+         */
         public Builder maximum(int[][] max) {
             if (this.customerCount  < 0) {
                 this.customerCount = max.length;
@@ -66,6 +111,15 @@ public class Bank {
             return this;
         }
 
+        /**
+         * Generates a valid matrix for the maximum number of resources that
+         * each customer may request. This assumes that resources are already
+         * setup and that the <b>resourceCount</b> is the same as the number of
+         * resources previously set.
+         *
+         * @param customerCount the number of customers
+         * @param resourceCount the number of resource types
+         */
         public Builder randomMaximum(int customerCount, int resourceCount) {
             if (this.customerCount < 0) {
                 this.customerCount = customerCount;
@@ -84,6 +138,10 @@ public class Bank {
             return this;
         }
 
+        /**
+         * Finalized building the bank. This assumes that methods have been
+         * called in the correct order have been called.
+         */
         public Bank build() {
             return new Bank(this);
         }
@@ -101,20 +159,36 @@ public class Bank {
         this.printInital();
     }
 
-    public int resourceLength() {
-        return this.resources.length;
+    /**
+     * Returns the maximum that a customer may request.
+     *
+     * @param customerId id of the customer
+     * @return an array of the maximum of each resource that the customer may
+     *         request.
+     */
+    public int[] getMaximum(int customerId) {
+        return this.maximum[customerId];
     }
 
-    public int[] getMaximum(int i) {
-        return this.maximum[i];
-    }
-
+    /**
+     * Prints the available resources and maximum for each customer to screen.
+     */
     public void printInital() {
         Logger.log("Bank: Initial Resources Available:");
         this.printResources();
         this.printMaximum();
     }
 
+    /**
+     * Handles a request from a customer. This first checks if the request
+     * request is safe. If it is not safe it returns false. Otherwise it
+     * continues on and allocates the resources, and then prints the results.
+     *
+     * @param customer  the customer making the request
+     * @param id        the id of the of transaction
+     * @param request   the request to be processed
+     * @return true if a request has been processed. false if the the request was not safe and is not allocated.
+     */
     public synchronized boolean request(Customer customer, int id, int[] request) {
         if (!this.isSafe(request)) {
             Logger.log("Bank: Not safe");
